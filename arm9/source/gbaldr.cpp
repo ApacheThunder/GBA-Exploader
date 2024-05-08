@@ -58,15 +58,7 @@ extern "C" {
 
 
 extern char curpath[];
-extern int	sortfile[];
-
-struct GBA_File {
-	u32	type;
-	char filename[512];
-	u32	filesize;
-	char gametitle[13];
-	char gamecode[5];
-};
+extern int sortfile[];
 
 extern struct GBA_File fs[];
 extern char tbuf[];
@@ -469,9 +461,19 @@ int checkFlashID() {
 	
 	if(carttype == 0) {
 		ewin = cehck_EWIN();
-		if(ewin > 0)carttype = 3 + ewin;
+		if(ewin > 0) { 
+			carttype = 3 + ewin;
+		} else {
+			#ifdef _DEBUG
+			FILE *testFile = fopen("/gbacardID.bin", "wb");
+			if (testFile) {
+				fwrite((void*)id, 4, 1, testFile);
+				fclose(testFile);
+			}
+			#endif
+		}
 	}
-	
+
 	return(carttype);
 }
 
@@ -485,8 +487,7 @@ bool checkSRAM_cnf() {
 	ctrl_get();
 
 	for(i = 0; ctrl.sign[i] != 0; i++) {
-		if(ctrl.sign[i] != Rudolph[i])
-			break;
+		if(ctrl.sign[i] != Rudolph[i])break;
 	}
 
 //	_RamSave(0);
@@ -952,32 +953,23 @@ int writeFileToRam(int sel) {
 //	} else	writeSramToFile(savName);
 
 	// if((fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'G') || (fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'g')) {
-	if((fs[sel].filename[strlen(fs[sel].filename) - 3] != 'G') || (fs[sel].filename[strlen(fs[sel].filename) - 3] != 'g')) {
-		gba = false;
-	} else {
-		gba = true;
-	}
+	if((fs[sel].filename[strlen(fs[sel].filename) - 3] != 'G') || (fs[sel].filename[strlen(fs[sel].filename) - 3] != 'g')) { gba = false; } else { gba = true; }
 
 	sprintf(tbuf, "%s%s", curpath, fs[sel].filename);
 
 	gbaFile = fopen(tbuf, "rb");
 	if(gbaFile == NULL)	return(0);
 
-
 	strcpy(savName, fs[sel].filename);
 	cmd = save_sel(0, savName);
 
-
 //	SetRampage(USE_SRAM_PSR);
 	if(carttype < 4) {
-		if(carttype == 3)
-			SetRompage(0x300 - 3);
-		else	SetRompage(384 - 3);
+		if(carttype == 3) { SetRompage(0x300 - 3); } else { SetRompage(384 - 3); }
 		OpenNorWrite();
 	}
 //	savesize = gba_check(gbaFile, fs[sel].filesize, rwbuf, 0x100000);
-//	if(savesize == 0)
-//		savesize = 0x8000;
+//	if(savesize == 0)savesize = 0x8000;
 
 
 	dsp_bar(2, -1);
@@ -989,8 +981,7 @@ int writeFileToRam(int sel) {
 
 		dsp_bar(2, siz * 100 / fs[sel].filesize);
 
-		if(siz == 0 && gba)
-			header_rep(rwbuf);
+		if(siz == 0 && gba)header_rep(rwbuf);
 
 		savesize = gba_check_Ram1(rwbuf, 0x100000, fs[sel].filesize, siz);
 
@@ -1011,27 +1002,18 @@ int writeFileToRam(int sel) {
 //	}
 
 //	getSaveFilename(sel, savName);
-	if(cmd >= 0)
-		writeSramFromFile(savName);
-	else	blankSRAM(savName);
+	if(cmd >= 0) { writeSramFromFile(savName); } else { blankSRAM(savName); }
 
 	dsp_bar(-1, 100);
 
-
-	if(carttype < 4)
-		CloseNorWrite();
+	if(carttype < 4)CloseNorWrite();
 
 	_RamSave(0);
 	if(carttype >= 4) {
-		if(carttype == 6)
-			Close_M3();
-		else
-			Close_EWIN();
+		if(carttype == 6) { Close_M3(); } else { Close_EWIN(); }
 	}
-	if(carttype == 3)
-		SetRompage(0x300);
-	if(carttype <= 2)
-		SetRompage(384);
+	if(carttype == 3)SetRompage(0x300);
+	if(carttype <= 2)SetRompage(384);
 
 	return(0);
 }
@@ -1140,7 +1122,7 @@ void FileListGBA() {
 			dirent* pent = readdir(dir);
 			if(pent == NULL)break;
 			stat(pent->d_name, &st);
-			if ((((string)pent->d_name).compare(".") == 0) || ((st.st_mode & S_IFMT) == S_IFDIR) || nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT)) {
+			if (((st.st_mode & S_IFMT) == S_IFDIR) || nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT)) {
 				strcpy(fs[numFiles].filename, pent->d_name);
 				// strcpy(fs[numFiles].Alias, pent->d_name);
 				fs[numFiles].type = st.st_mode;

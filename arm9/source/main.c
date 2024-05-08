@@ -21,65 +21,49 @@
 ---------------------------------------------------------------------------------*/
 #include "nds.h"
 #include <nds/arm9/console.h> //basic print funcionality
-//#include <nds/registers_alt.h>
-// #include <nds/jtypes.h>
 #include <nds/ndstypes.h>
+#include <nds/fifocommon.h>
+#include <nds/fifomessages.h>
 
 #include <fat.h>
 #include <sys/dir.h>
-#include <sys/iosupport.h>
-// #include "fatfile.h"
+// #include <sys/iosupport.h>
 #include <nds/arm9/dldi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//#include "disc_io.h"
-//#include "gba_nds_fat.h"
-//extern LPIO_INTERFACE active_interface;
-
-
 #include "maindef.h"
 #include "dsCard.h"
 #include "GBA_ini.h"
 #include "ctrl_tbl.h"
 
-//#include "ram.h"
-
 #include "memcleaner.h"
 
 #include "linkreset_arm9.h"
-//#include "unicode.h"
 #include "skin.h"
 #include "message.h"
 
 #include "tarosa/tarosa_Graphic.h"
 #include "tarosa/tarosa_Shinofont.h"
+
 extern uint16* MainScreen;
 extern uint16* SubScreen;
-//uint16* MainScreen = VRAM_A;
-//uint16* SubScreen = (uint16*)BG_TILE_RAM_SUB(1);
 
-#define BG_256_COLOR   (BIT(7))
+#define BG_256_COLOR (BIT(7))
+
+#define VERSTRING "v0.58"
 
 int	numFiles = 0;
 int	numGames = 0;
 
-char	curpath[256];
+char curpath[256];
 int	sortfile[200];
-struct	GBA_File {
-		char	Alias[13];
-		u32	type;
-		char	filename[512];
-		u32	filesize;
-		char	gametitle[13];
-		char	gamecode[5];
-};
 
-struct	GBA_File	fs[200];
-char	tbuf[512];
-char	filename[512];
+struct GBA_File fs[200];
+char tbuf[512];
+char filename[512];
 
 u8	*rwbuf;
 
@@ -90,19 +74,16 @@ u8	*rwbuf;
 #define IPC_CMD_SR_DLMS 12
 #define IPC_CMD_SR_GEN	13
 
-
 extern	int	carttype;
 
 
-void Vblank() { }
-
+// void Vblank() { }
 // void FIFOInit() { REG_IPC_FIFO_CR = IPC_FIFO_ENABLE | IPC_FIFO_SEND_CLEAR; }
 // void FIFOSend(u32 val) { REG_IPC_FIFO_TX = val; }
 
 
 
-u32 inp_key()
-{
+u32 inp_key() {
 	u32	ky;
 
 	while(1) {
@@ -121,19 +102,19 @@ u32 inp_key()
 }
 
 
-extern	void	ret_menu9_R4(void);
-
-extern	bool	ret_menu_chk(void);
-extern	bool	ret_menu9_Gen(void);
-extern	void	ret_menu9_GENs(void);
+extern void ret_menu9_R4(void);
+extern bool ret_menu_chk(void);
+extern bool ret_menu9_Gen(void);
+extern void ret_menu9_GENs(void);
 
 void turn_off(int cmd) {
 	if(cmd == 0) {			// 電源断
 		// FIFOSend(IPC_CMD_TURNOFF);
 		systemShutDown();
 	}
-	/*if(cmd == 1) {			// R4 Soft Reset
+	if(cmd == 1) {			// R4 Soft Reset
 		// FIFOSend(IPC_CMD_SR_R4TF);
+		fifoSendValue32(FIFO_USER_02, 1);
 		REG_IME = 0;
 		REG_IE = 0;
 		REG_IF = REG_IF;
@@ -147,14 +128,16 @@ void turn_off(int cmd) {
 		ret_menu9_R4();
 	}
 	if(cmd == 2) {			// DSLink Soft Reset
-		FIFOSend(IPC_CMD_SR_DLMS);
+		// FIFOSend(IPC_CMD_SR_DLMS);
+		fifoSendValue32(FIFO_USER_03, 1);
 		LinkReset_ARM9();
 	}
 	if(cmd == 3) {			// General purpose Soft Reset
 		ret_menu9_Gen();
-		FIFOSend(IPC_CMD_SR_GEN);
+		fifoSendValue32(FIFO_USER_04, 1);
+		// FIFOSend(IPC_CMD_SR_GEN);
 		ret_menu9_GENs();
-	}*/
+	}
 
 	while(1);
 }
@@ -166,15 +149,21 @@ void gba_frame() {
 	u16	*pDstBuf1;
 	u16	*pDstBuf2;
 
-	ret = LoadSkin(2, "/gbaframe.bmp");
-	if(ret)	return;
+	if (access("/gbaframe.bmp", F_OK) == 0) {
+		ret = LoadSkin(2, "/gbaframe.bmp");
+		if(ret)return;
+	}
 
 	sprintf(tbuf, "%s/gbaframe.bmp", ini.sign_dir);
-	ret = LoadSkin(2, tbuf);
-	if(ret)	return;
+	if (access(tbuf, F_OK) == 0) {
+		ret = LoadSkin(2, tbuf);
+		if(ret)return;
+	}
 
-	ret = LoadSkin(2, "/_system_/gbaframe.bmp");
-	if(ret)	return;
+	if (access("/_system_/gbaframe.bmp", F_OK) == 0) {
+		ret = LoadSkin(2, "/_system_/gbaframe.bmp");
+		if(ret)return;
+	}
 
 	pDstBuf1 = (u16*)0x06000000;
 	pDstBuf2 = (u16*)0x06020000;
@@ -199,6 +188,7 @@ static void resetToSlot2() {
 	sysSetCartOwner(BUS_OWNER_ARM7);  // ARM7 has access to GBA cart
 
 	// FIFOSend(IPC_CMD_SLOT2);
+	fifoSendValue32(FIFO_USER_05, 1);
 	
 	for(vr = 0; vr < 0x20000; vr++);	// Wait ARM7
 
@@ -209,10 +199,10 @@ static void resetToSlot2() {
 
 void gbaMode() {
 
-	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
+	/*if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
 		resetARM9Memory();
 		resetToSlot2();
-	}
+	}*/
 
 	videoSetMode(0);
 	videoSetModeSub(0);
@@ -222,8 +212,9 @@ void gbaMode() {
 //	vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_ARM7, VRAM_D_ARM7);
 
 	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
-
+	
 //	FIFOSend(IPC_CMD_GBAMODE);
+	fifoSendValue32(FIFO_USER_01, 1);
 
 	gba_frame();
 
@@ -231,8 +222,7 @@ void gbaMode() {
 	fifoSendValue32(FIFO_USER_01, 1);
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	REG_IME = 0;
-
-	while(1);
+	while(1)swiWaitForVBlank();
 } 
 
 
@@ -571,7 +561,9 @@ void _gba_dsp(int no, int mod, int x, int y) {
 			sprintf(tbuf, "Size: %dKB (%s %s)", (int)fs[sn].filesize / 1024, fs[sn].gametitle, fs[sn].gamecode);
 			ShinoPrint_SUB( SubScreen, 4*6, 5*12, (u8 *)tbuf, 1, 0, 0 );
 		}
-	} else	ShinoPrint( MainScreen, x*6, y*12, (u8 *)tbuf, RGB15(0,0,0), RGB15(31,31,31), 1);
+	} else {
+		ShinoPrint( MainScreen, x*6, y*12, (u8 *)tbuf, RGB15(0,0,0), RGB15(31,31,31), 1);
+	}
 }
 
 
@@ -621,19 +613,22 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 			if(carttype < 3) {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[5], 1, 0, 1);
 			} else {
-				if(r4tf)
+				if(r4tf) {
 					ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[20], 1, 0, 1);
-				else	ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)"                          ", 1, 0, 1);
+				} else {
+					ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)"                          ", 1, 0, 1);
+				}
 			}
 		} else {
 //			DrawBox_SUB(SubScreen, 75, 115, 181, 136, 1, 0);
 //			DrawBox_SUB(SubScreen, 76, 116, 180, 135, 6, 1);
 //			DrawBox_SUB(SubScreen, 77, 117, 179, 134, 5, 0);
 
-			if(r4tf)
+			if(r4tf) {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[6], 1, 0, 1);
-			else
+			} else {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[7], 1, 0, 1);
+			}
 //		ShinoPrint_SUB( SubScreen, 15*6, 10*12, (u8 *)t_msg[8], 5, 6, 1);
 			ShinoPrint_SUB( SubScreen, 15*6, 10*12, (u8 *)t_msg[8], 0, 5, 1);
 			ShinoPrint_SUB( SubScreen, 2*6, 11*12+6, (u8 *)t_msg[9], 1, 0, 1);
@@ -654,12 +649,11 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 		DrawBox_SUB(SubScreen, 8, 82, 247, 109, 5, 0);
 
 
-	if(GBAmode == 0) {
-		ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 3, 5);
-	} else {
-		ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 5, 3);
-	}
-
+		if(GBAmode == 0) {
+			ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 3, 5);
+		} else {
+			ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 5, 3);
+		}
 
 		checkSRAM(filename);
 //		Unicode2Local(uniname, (u8*)savName, 34);
@@ -679,9 +673,7 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 	st = no - yc;
 	for(i = 0; i < 15; i++) {
 		if(i + st < numFiles) {
-			if(i == yc)
-				_gba_dsp(i + st, 1, x, y + i);
-			else	_gba_dsp(i + st, 0, x, y + i);
+			if(i == yc) { _gba_dsp(i + st, 1, x, y + i); } else { _gba_dsp(i + st, 0, x, y + i); }
 		}
 	}
 }
@@ -966,31 +958,14 @@ int gba_sel() {
 				cmd = -1;
 				break;
 			}
-			if(GBAmode == 0)
-				ret = writeFileToRam(sortfile[sel]);
-			else	ret = writeFileToNor(sortfile[sel]);
+			if(GBAmode == 0) { ret = writeFileToRam(sortfile[sel]); } else { ret = writeFileToNor(sortfile[sel]); }
 			if(ret != 0) {
 				if(ret == 2) {
 					err_cnf(9, 10);
 				} else {
-					if(GBAmode == 0 && carttype < 3)
-						err_cnf(7, 8);
-					else	err_cnf(7, 6);
+					if(GBAmode == 0 && carttype < 3) { err_cnf(7, 8); } else { err_cnf(7, 6); }
 				}
 			} else {
-
-
-/******************
-sprintf(tbuf, " %d <%s> ", (int)PatchType[0], SaveVer);
-ShinoPrint_SUB( SubScreen, 8*6, 4*12, (u8*)tbuf, 3, 0, 1);
-for(i = 0; i < PatchCnt; i++) {
-	sprintf(tbuf, "  %02X %02X %08X  ", (int)SaveType, (int)PatchType[i], (int)PatchAddr[i]);
-	ShinoPrint_SUB( SubScreen, 8*6, (5+i)*12, (u8*)tbuf, 3, 0, 1);
-}
-inp_key();
-****************/
-
-
 				if(GBAmode == 0) {
 //					SetRompage(384);
 					gbaMode();
@@ -1001,24 +976,13 @@ inp_key();
 		if(ky & KEY_B) {
 			if(checkSRAM(filename)) {
 //				if(cnf_inp(1, 2) & KEY_A) {
-				if(save_sel(1, filename) >= 0) {
-					writeSramToFile(filename);
-				}
+				if(save_sel(1, filename) >= 0)writeSramToFile(filename);
 				_gba_sel_dsp(sel, yc, 0);
 			} else {
 				err_cnf(4, 5);
 			}
 		}
-
 	}
-
-/**
-	while(1) {
-		swiWaitForVBlank();
-		scanKeys();
-		if(keysDown() != repky)	break;
-	}
-**/
 	return(cmd);
 }
 
@@ -1044,9 +1008,8 @@ void mainloop(void) {
 	DrawBox_SUB(SubScreen, 20, 3, 235, 27, 1, 0);
 	DrawBox_SUB(SubScreen, 21, 4, 234, 26, 5, 1);
 	DrawBox_SUB(SubScreen, 22, 5, 233, 25, 0, 0);
-	ShinoPrint_SUB( SubScreen, 9*6, 1*12-2, (u8*)"GBA ExpLoader", 0, 0, 0 );
-//	ShinoPrint_SUB( SubScreen, 33*6+1, 12, (u8 *)"v0.5β", 0, 0, 0 );
-	ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8 *)"v0.57", 0, 0, 0 );
+	ShinoPrint_SUB( SubScreen, 9*6, 1*12-2, (u8*)"GBA ExpLoader", 0, 0, 0);
+	ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8 *)VERSTRING, 0, 0, 0);
 
 
 	DrawBox_SUB(SubScreen, 6, 125, 249, 190, 5, 0);
@@ -1079,44 +1042,32 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	ShinoPrint_SUB( SubScreen, 9*6, 5*12, tbuf, 1, 0, 0 );
 	inp_key();
 ********/
-
+	if(!fatInitDefault()) { err_cnf(0, 1); turn_off(0); }
+	
 	checkFlashID();
-	if(carttype == 0 || carttype > 6) {
-//		if(carttype != 5)
+	
+	switch (carttype) {
+		default: 
 			err_cnf(2, 3);
-//		else	err_cnf(9, 10);
-		turn_off(r4tf);
+			turn_off(r4tf);
+			break;
+		case 0: 
+			err_cnf(2, 3);
+			turn_off(r4tf);
+			break;
+		case 1: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 ); break; // SetRampage(16); // SetShake(0x08);
+		case 2: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 ); break;		
+		case 3:
+			SetRompage(0x300);
+			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"  [ EZ4 ]", 0, 0, 0 );
+			break;
+		case 4: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP256K]", 0, 0, 0 ); break;
+		case 5: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP128K]", 0, 0, 0 ); break;
+		case 6: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ M3/G6 ]", 0, 0, 0 ); break;
 	}
-	if(carttype <= 2) {
-//		SetRampage(16);
-//		SetShake(0x08);
-		if(carttype == 1) {
-			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
-		} else {
-			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 );
-		}
-	}
-	if(carttype == 3) {
-		SetRompage(0x300);
-		ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"  [ EZ4 ]", 0, 0, 0 );
-	}
-	if(carttype == 4) {
-		ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP256K]", 0, 0, 0 );
-	}
-	if(carttype == 5) {
-		ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP128K]", 0, 0, 0 );
-	}
-	if(carttype == 6) {
-		ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ M3/G6 ]", 0, 0, 0 );
-	}
-
-
 
 	ShinoPrint_SUB( SubScreen, 9*6, 5*12, (u8 *)t_msg[16], 1, 0, 0 );
-	if(fatInitDefault() == false) {
-		err_cnf(0, 1);
-		turn_off(0);
-	}
+	// if(!fatInitDefault()) { err_cnf(0, 1); turn_off(0); }
 
 //ShinoPrint_SUB( SubScreen, 6*6, 6*12, "FAT OK", 1, 0, 0 );
 
@@ -1174,9 +1125,7 @@ inp_key();
 	GBA_ini();
 
 	if(checkSRAM_cnf() == false) {
-		if(carttype != 5) {
-			if(cnf_inp(9, 10) & KEY_B)turn_off(r4tf);
-		}
+		if(carttype != 5)if(cnf_inp(9, 10) & KEY_B)turn_off(r4tf);
 	}
 
 
@@ -1240,23 +1189,18 @@ inp_key();
 //---------------------------------------------------------------------------------
 int main(void) {
 //---------------------------------------------------------------------------------
-
+	defaultExceptionHandler();
+	
 	int	i;
 
 	vramSetPrimaryBanks(VRAM_A_LCD, VRAM_B_LCD, VRAM_C_SUB_BG, VRAM_D_MAIN_BG);
 	powerOn(POWER_ALL);
 
-	irqInit();
-	irqSet(IRQ_VBLANK, Vblank);
-	irqEnable(IRQ_VBLANK);
-	// FIFOInit();
-
 	videoSetMode(MODE_FB0 | DISPLAY_BG2_ACTIVE);
 	videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE );
-	// SUB_BG0_CR = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
 	REG_BG0CNT_SUB = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
 	uint16* map1 = (uint16*)BG_MAP_RAM_SUB(0);
-	for(i=0;i<(256*192/8/8);i++)	map1[i]=i;
+	for(i=0;i<(256*192/8/8);i++)map1[i]=i;
 	lcdMainOnTop();
 	//メイン画面を白で塗りつぶします
 	ClearBG( MainScreen, RGB15(31,31,31) );
@@ -1272,28 +1216,12 @@ int main(void) {
 
 	ClearBG_SUB( SubScreen, 0 );				//バックを白に
 
-
-
-//	videoSetMode(0);	//not using the main screen
-//	videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE);	//sub bg 0 will be used to print text
-//	vramSetBankC(VRAM_C_SUB_BG);
-
-//	SUB_BG0_CR = BG_MAP_BASE(31);
-
-//	BG_PALETTE_SUB[255] = RGB15(31,31,31);	//by default font will be rendered with color 255
-
-	//consoleInit() is a lot more flexible but this gets you up and running quick
-//	consoleInitDefault((u16*)SCREEN_BASE_BLOCK_SUB(31), (u16*)CHAR_BASE_BLOCK_SUB(0), 16);
 	swiWaitForVBlank();
 	swiWaitForVBlank();
 	sysSetBusOwners(BUS_OWNER_ARM9,BUS_OWNER_ARM9);
-
-
-//	iprintf("%s\n%s\n%s\n\n", ROMTITLE, ROMVERSION, ROMDATE);
 
 	mainloop();
 
 	return 0;
 }
-
 

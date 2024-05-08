@@ -18,8 +18,7 @@
 static	char	*menu_nam;
 static	char	name[32];
 
-bool ret_menu_chk()
-{
+bool ret_menu_chk() {
 	FILE	*fp;
 	char	buf[5];
 
@@ -38,34 +37,19 @@ bool ret_menu_chk()
 
 	menu_nam = NULL;
 
-	if(io_dldi_data->ioInterface.ioType == 0x53444353) {		// SCDS
-		menu_nam = "/MSFORSC.NDS";
+	switch (io_dldi_data->ioInterface.ioType) {
+		case 0x53444353: menu_nam = "/MSFORSC.NDS"; break; // SCDS		
+		// case 0x4F49524E: menu_nam = "/udisk.nds"; break; // N-Card and Clones		
+		case 0x4E475052: menu_nam = "/akmenu4.nds"; break; // AK.R.P.G NAND		
+		case 0x53475052: menu_nam = "/akmenu4.nds"; break; // AK.R.P.G SD		
+		case 0x44533958: menu_nam = "/loader.nds"; break; // X9 SD
+		case 0x4F495454: menu_nam = "/TTMENU.DAT"; break; // DSTT
 	}
 
 //	if(_io_dldi == 0x58585858) {		// AK+(XXXX)
 //		menu_nam = "/system/akmenu2_fat.nds";
 //	}
-
-	if(io_dldi_data->ioInterface.ioType == 0x4F49524E) {		// N-Card
-		menu_nam = "/udisk.nds";	// Žb’è
-	}
-
-	if(io_dldi_data->ioInterface.ioType == 0x4E475052) {		// AK.R.P.G NAND
-		menu_nam = "/akmenu4.nds";
-	}
-
-	if(io_dldi_data->ioInterface.ioType == 0x53475052) {		// AK.R.P.G SD
-		menu_nam = "/akmenu4.nds";
-	}
-
-	if(io_dldi_data->ioInterface.ioType == 0x44533958) {		// X9 SD
-		menu_nam = "/loader.nds";
-	}
-
-	if(io_dldi_data->ioInterface.ioType == 0x4F495454) {		// DSTT
-		menu_nam = "/TTMENU.DAT";
-	}
-
+	
 	if(menu_nam != NULL) {
 		fp = fopen(menu_nam, "rb");
 		if(fp != NULL) {
@@ -78,8 +62,7 @@ bool ret_menu_chk()
 }
 
 
-bool ret_menu9_Gen()
-{
+bool ret_menu9_Gen() {
 	u32	hed[16];
 	u8	*ldrBuf;
 	FILE	*ldr;

@@ -12,8 +12,10 @@ struct	ini_file	ini;
 
 extern	u8	*rwbuf;
 
-void GBA_ini()
-{
+extern u8 defaultSettings[];
+extern u8 defaultSettingsEnd[];
+
+void GBA_ini() {
 	FILE	*fini;
 	int	len, p, s;
 	char	key[20];
@@ -22,22 +24,28 @@ void GBA_ini()
 	strcpy(ini.save_dir, "/GBA_SAVE");
 	strcpy(ini.sign_dir, "/GBA_SIGN");
 
-
-	fini = fopen("/GBA_ExpLoader.ini", "rb");
-	if(fini == NULL) {
-		mkdir(ini.save_dir, 0777);
-		mkdir(ini.sign_dir, 0777);
+	if(access("/GBA_ExpLoader.ini", F_OK) == 0) {
+		fini = fopen("/GBA_ExpLoader.ini", "rb");
+		if(access(ini.save_dir, F_OK) != 0)mkdir(ini.save_dir, 0777);
+		if(access(ini.sign_dir, F_OK) != 0)mkdir(ini.sign_dir, 0777);
+	} else {
+		fini = fopen("/GBA_ExpLoader.ini", "wb");
+		if (fini) {
+			fwrite(defaultSettings, (defaultSettingsEnd - defaultSettings), 1, fini);
+			fclose(fini);
+		}
+		if(access(ini.save_dir, F_OK) != 0)mkdir(ini.save_dir, 0777);
+		if(access(ini.sign_dir, F_OK) != 0)mkdir(ini.sign_dir, 0777);
 		return;
 	}
-
+	
 	len = fread(rwbuf, 1, 0x1000, fini);
 
 	p = 0;
 	while(p < len) {
 		if(rwbuf[p] == '#' || rwbuf[p] == '!') {
 			while(p < len) {
-				if(rwbuf[p] == 0x0A)
-					break;
+				if(rwbuf[p] == 0x0A)break;
 				p++;
 			}
 			p++;

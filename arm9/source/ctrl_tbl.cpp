@@ -10,29 +10,28 @@
 #include "GBA_ini.h"
 #include "ctrl_tbl.h"
 
-struct	ctrl_tbl	ctrl;
+struct ctrl_tbl ctrl;
 
-#define	SRAM_ADDR	0x0A000000
+#define	SRAM_ADDR 0x0A000000
 
 
-extern	int	carttype;
+extern int carttype;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern	void	_RamPG(void);
-extern	void	_RamSave(int bnk);
+extern void _RamPG(void);
+extern void _RamSave(int bnk);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-void	ctrl_get()
-{
-	FILE	*exp;
-	char	expfile[64];
+void ctrl_get() {
+	FILE *exp;
+	char expfile[64];
 
 	memset((u8*)&ctrl, 0, sizeof(struct ctrl_tbl));
 
@@ -51,11 +50,9 @@ void	ctrl_get()
 	}
 }
 
-void	ctrl_set()
-{
-	FILE	*exp;
-	char	expfile[64];
-
+void ctrl_set() {
+	FILE *exp;
+	char expfile[64];
 
 	if(carttype != 5) {
 		_RamPG();

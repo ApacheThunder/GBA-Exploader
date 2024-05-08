@@ -13,8 +13,10 @@
 
 
 //東雲フォントデータ用ヘッダ
-#include "shinonome_bin.h"		//全角ゴシックフォント
-#include "shinonomeank_bin.h"	//半角フォント
+// #include "shinonome_bin.h"		//全角ゴシックフォント
+// #include "shinonomeank_bin.h"	//半角フォント
+extern char shinonomeank_bin[];
+extern char shinonome_bin[];
 
 #include "tarosa_Graphic.h"
 #include "tarosa_Shinofont.h"

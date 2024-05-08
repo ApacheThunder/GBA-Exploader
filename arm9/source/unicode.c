@@ -3,9 +3,14 @@
 #include <ctype.h>
 #include "unicode.h"
 
-#include "unicode_u2l_bin.h"
+/*#include "unicode_u2l_bin.h"
 #include "unicode_l2u_bin.h"
-#include "unicode_ank_bin.h"
+#include "unicode_ank_bin.h"*/
+
+extern u16 unicode_u2l_bin[];
+extern u16 unicode_l2u_bin[];
+extern u16 unicode_ank_bin[];
+
 
 static u16 _codePage = 0;
 

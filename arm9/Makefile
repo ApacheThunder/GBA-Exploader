@@ -16,9 +16,7 @@ include $(DEVKITARM)/ds_rules
 # all directories are relative to this makefile
 #---------------------------------------------------------------------------------
 BUILD		:=	build
-# SOURCES		:=	source fonts source/tarosa source/card
-# INCLUDES	:=	include build source/tarosa source/card
-SOURCES	:=	source data source/tarosa
+SOURCES		:=	source source/tarosa
 INCLUDES	:=	include build source/tarosa
 DATA		:=	data
 STATICLIBS	:= 
@@ -26,12 +24,12 @@ STATICLIBS	:=
 # options for code generation
 #---------------------------------------------------------------------------------
 #            $(ARCH) $(INCLUDE) -DARM9 -D_LegacyCardLib
-ARCH	:=	-mthumb-interwork
+ARCH	:= 	-mthumb -mthumb-interwork -march=armv5te -mtune=arm946e-s
 CFLAGS  :=	-g -Wall -O2 \
             $(ARCH) $(INCLUDE) -DARM9
 CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS  := -g $(ARCH)
-LDFLAGS   = -specs=dsi_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS   = -specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

@@ -28,6 +28,16 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "linkreset_arm7.h"
+
+volatile bool switchedMode = false;
+
+extern	void	ret_menu7_R4(void);
+extern	void	ret_menu7_Gen(void);
+extern	void	ret_menu7_mse(void);
 
 void gbaMode() {
 	vu32	vr;
@@ -48,12 +58,67 @@ void gbaMode() {
 	while(1);
 }
 
+static void prepairReset() {
+	vu32	vr;
+	u32	i;
+
+	powerOn(POWER_SOUND);
+
+	for(i = 0x040000B0; i < (0x040000B0+0x30); i+=4)*((vu32*)i) = 0;
+
+	REG_IME = IME_DISABLE;
+	REG_IE = 0;
+	REG_IF = ~0;
+
+	for(vr = 0; vr < 0x100; vr++);	// Wait ARM9
+
+	swiSoftReset();
+}
 
 volatile bool exitflag = false;
 
 void powerButtonCB() { exitflag = true; }
 
-void VblankHandler(void) { 
+void fifoCheckHandler() {
+	if (!switchedMode) {
+		if(fifoCheckValue32(FIFO_USER_01)) {
+			switchedMode = true;
+			gbaMode();
+		} else if (fifoCheckValue32(FIFO_USER_02)) {
+			switchedMode = true;
+			ret_menu7_R4();
+		} else if (fifoCheckValue32(FIFO_USER_03)) {
+			switchedMode = true;
+			LinkReset_ARM7();
+		} else if (fifoCheckValue32(FIFO_USER_04)) {
+			switchedMode = true;
+			ret_menu7_Gen();
+		} else if (fifoCheckValue32(FIFO_USER_05)) {
+			switchedMode = true;
+			prepairReset();
+		}			
+	}
+	
+	
+	/*u32	fifo;
+	if(!(REG_IPC_FIFO_CR & IPC_FIFO_RECV_EMPTY)) {
+		fifo = REG_IPC_FIFO_RX;
+
+		if(fifo == IPC_CMD_GBAMODE)gbaMode();
+		if(fifo == IPC_CMD_SLOT2)prepairReset();
+		if(fifo == IPC_CMD_TURNOFF) {
+			PM_SetControl(1<<6);
+			while(1);
+		}
+		if(fifo == IPC_CMD_SR_R4TF)ret_menu7_R4();
+		if(fifo == IPC_CMD_SR_DLMS)LinkReset_ARM7();
+		if(fifo == IPC_CMD_SR_GEN)ret_menu7_Gen();
+		if(fifo == IPC_CMD_SR_MSE)ret_menu7_mse();
+	}*/
+}
+
+void VblankHandler(void) {
+	fifoCheckHandler();
 	// Wifi_Update();
 }
 
@@ -63,8 +128,7 @@ void VcountHandler() { inputGetAndSend(); }
 int main() {
 	readUserSettings();
 	ledBlink(0);
-	bool switchedMode = false;
-	
+		
 	irqInit();
 	// Start the RTC tracking IRQ
 	initClockIRQ();
@@ -88,14 +152,7 @@ int main() {
 	setPowerButtonCB(powerButtonCB);
 
 	// Keep the ARM7 mostly idle
-	while(1) {
-		if(fifoCheckValue32(FIFO_USER_01) && !switchedMode) {
-			switchedMode = true;
-			gbaMode();
-		}
-		swiWaitForVBlank();
-	}
-	
+	while(1)swiWaitForVBlank();
 	return 0;
 }
 

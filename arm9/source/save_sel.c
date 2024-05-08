@@ -75,8 +75,7 @@ void _save_list(char *name) {
 }
 
 
-int save_sel(int mod, char *name)
-{
+int save_sel(int mod, char *name) {
 	int	cmd = 0;
 	u32	ky, repky;
 	int	i;
@@ -128,10 +127,7 @@ int save_sel(int mod, char *name)
 
 
 	ShinoPrint_SUB(SubScreen, x1 + 3, y1 + 20, (u8 *)savnam[0], 2, 3, 1);
-	for(i = 1; i < 6; i++) {
-		ShinoPrint_SUB(SubScreen, x1 + 3, y1 + 20 + i*13, (u8 *)savnam[i], 1, 0, 0);
-	}
-
+	for(i = 1; i < 6; i++)ShinoPrint_SUB(SubScreen, x1 + 3, y1 + 20 + i*13, (u8 *)savnam[i], 1, 0, 0);
 
 	while(1) {
 		swiWaitForVBlank();

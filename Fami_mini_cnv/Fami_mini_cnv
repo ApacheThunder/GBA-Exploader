@@ -1,0 +1,76 @@
+on error Resume next
+
+Set Fs = WScript.CreateObject("Scripting.FileSystemObject")
+Set arg = WScript.Arguments
+
+
+if arg.Count=0 then
+	path = InputBox("Please specify the file name of the converted save file.")
+else
+	path = arg(0)
+end if
+
+
+savefile = false
+if Fs.FileExists(path) then
+	set fo = Fs.GetFile(path)
+	ext = UCase(Fs.GetExtensionName(path))
+	if ext = "SAV" then savefile = true
+	if ext = "SV1" then savefile = true
+	if ext = "SV2" then savefile = true
+	if ext = "SV3" then savefile = true
+	if ext = "SV4" then savefile = true
+	if ext = "SV5" then savefile = true
+end if
+
+if savefile = false then
+	MsgBox "It is not a save file."
+	WScript.Quit
+end if
+
+
+
+
+Dim sIn, sOut
+
+Set sIn = CreateObject("ADODB.Stream")
+Set sOut = CreateObject("ADODB.Stream")
+
+sIn.Type = 1
+sOut.Type = 1
+
+sIn.Open
+sOut.Open
+
+
+sIn.LoadFromFile(fo.Path)
+Do Until sIn.EOS
+	bf0 = sIn.Read(1)
+	bf1 = sIn.Read(1)
+	bf2 = sIn.Read(1)
+	bf3 = sIn.Read(1)
+	bf4 = sIn.Read(1)
+	bf5 = sIn.Read(1)
+	bf6 = sIn.Read(1)
+	bf7 = sIn.Read(1)
+
+	sOut.Write bf7
+	sOut.Write bf6
+	sOut.Write bf5
+	sOut.Write bf4
+	sOut.Write bf3
+	sOut.Write bf2
+	sOut.Write bf1
+	sOut.Write bf0
+Loop
+sOut.SaveToFile fo.Path, 2
+
+sIn.Close
+sOut.Close
+
+
+MsgBox "The save data was converted." & vbCrLf & vbCrLf & vbCrLf & _
+	fo.Name & "   " & FormatNumber(fo.Size, 0) & "Byte" & vbCrLf & _
+	 "(" & fo.Path & ")" & vbCrLf & vbCrLf _
+	,,"Famicom Mini SAVE Converter"
+

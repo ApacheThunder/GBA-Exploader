@@ -1,0 +1,22 @@
+====== Famicom Mini SAVE Convertor ======
+
+GBA_ExpLoader V0.57より、Famicom Mini系のSAVEファイルの形式を
+変更したことによる変換プログラムです。
+
+GBA_ExpLoader V0.56以前で作成された、Famicom Mini系のSAVEファイルを
+指定した場合は、GBA_ExpLoader V0.57以降およびVBA互換の形式に変換します。
+
+逆に、GBA_ExpLoader V0.57以降およびVBAで作成されたSAVEファイルを
+指定した場合は、GBA_ExpLoader V0.56以前の形式に変換します。
+
+＜使い方＞
+　・Fami_mini_cnv.vbsを、PCの適当な場所にコピーします。
+　・変換したいSAVEファイルをドラッグして、Fami_mini_cnv.vbsにドロップして起動します。
+
+＜注意＞
+　・VBScriptによる超適当プログラムです。
+　・エラー処理もいい加減ですので、正しい使い方でお願いします。
+　・SAVEファイルは変換時に内容を置き換えますので、必要に応じて事前にバックアップして
+　　から変換してください。
+
+by Rudolph (皇帝)

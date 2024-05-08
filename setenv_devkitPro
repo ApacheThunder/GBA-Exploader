@@ -1,0 +1,5 @@
+rem with libnds-20060719
+set PATH=d:\devkitPro\msys\bin;d:\devkitPro\devkitARM\bin;%PATH%
+set DEVKITARM=/d/devkitPro/devkitARM
+set DEVKITPRO=/d/devkitPro
+set LIBNDS=/d/devkitPro/libnds

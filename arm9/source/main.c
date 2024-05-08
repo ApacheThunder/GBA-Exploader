@@ -22,12 +22,14 @@
 #include "nds.h"
 #include <nds/arm9/console.h> //basic print funcionality
 //#include <nds/registers_alt.h>
-#include <nds/jtypes.h>
+// #include <nds/jtypes.h>
+#include <nds/ndstypes.h>
 
 #include <fat.h>
 #include <sys/dir.h>
 #include <sys/iosupport.h>
-#include "fatfile.h"
+// #include "fatfile.h"
+#include <nds/arm9/dldi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +61,7 @@ extern uint16* SubScreen;
 //uint16* MainScreen = VRAM_A;
 //uint16* SubScreen = (uint16*)BG_TILE_RAM_SUB(1);
 
+#define BG_256_COLOR   (BIT(7))
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -226,12 +229,11 @@ void gbaMode()
 	videoSetMode(0);
 	videoSetModeSub(0);
 
-	vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
+	// vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
+	vramSetPrimaryBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
 //	vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_ARM7, VRAM_D_ARM7);
 
-	if(PersonalData->_user_data.gbaScreen)
-		lcdMainOnBottom();
-	else	lcdMainOnTop();
+	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
 
 //	FIFOSend(IPC_CMD_GBAMODE);
 
@@ -674,9 +676,11 @@ void _gba_sel_dsp(int no, int yc, int mod)
 		DrawBox_SUB(SubScreen, 8, 82, 247, 109, 5, 0);
 
 
-	if(GBAmode == 0)
+	if(GBAmode == 0) {
 		ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 3, 5);
-	else	ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 5, 3);
+	} else {
+		ColorSwap_SUB(SubScreen, 0, 0, 255, 192, 5, 3);
+	}
 
 
 		checkSRAM(filename);
@@ -1042,7 +1046,7 @@ inp_key();
 }
 
 
-extern u32	_io_dldi;
+// extern u32	_io_dldi;
 
 extern	void	setLang(void);
 
@@ -1053,8 +1057,9 @@ void mainloop(void)
 
 	FILE	*r4dt;
 	__handle *handle;
-	FILE_STRUCT *file;
-	PARTITION *part;
+	// FILE_STRUCT *file;
+	FILE *file;
+	// PARTITION *part;
 
 	int	cmd;
 
@@ -1147,22 +1152,24 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 		r4tf = 3;
 	} else {
 		r4tf = 0;
-		if(_io_dldi == 0x46543452) {		// R4TF
+		if(io_dldi_data->ioInterface.ioType == 0x46543452) {		// R4TF
 			if((*(vu32*)0x027FFE18) == 0x00000000) {
 				r4dt = fopen("/_DS_MENU.DAT", "rb");
 				if(r4dt != NULL) {
 					handle = (__handle *)r4dt->_file;
-					file = (FILE_STRUCT *)handle->fileStruct;
-					part = file->partition;
-					(*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
+					// file = (FILE_STRUCT *)handle->fileStruct;
+					file = (FILE*)handle->fileStruct;
+					// part = file->partition;
+					// (*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
 					fclose(r4dt);
 					r4tf = 1;
 				}
-			} else	r4tf = 1;
+			} else {
+				r4tf = 1;
+			}
 		}
 
-		if(_io_dldi == 0x534D4C44)		// DLMS
-			r4tf = 2;
+		if(io_dldi_data->ioInterface.ioType == 0x534D4C44)r4tf = 2; // DLMS
 	}
 
 /******************************
@@ -1263,8 +1270,8 @@ int main(void) {
 
 	int	i;
 
-  vramSetMainBanks(VRAM_A_LCD ,  VRAM_B_LCD  , VRAM_C_SUB_BG, VRAM_D_MAIN_BG  );
-	powerON(POWER_ALL);
+	vramSetPrimaryBanks(VRAM_A_LCD ,  VRAM_B_LCD  , VRAM_C_SUB_BG, VRAM_D_MAIN_BG  );
+	powerOn(POWER_ALL);
 
 	irqInit();
 	irqSet(IRQ_VBLANK, Vblank);
@@ -1273,7 +1280,8 @@ int main(void) {
 
  videoSetMode(MODE_FB0 | DISPLAY_BG2_ACTIVE);
  videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE );
- SUB_BG0_CR = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
+ // SUB_BG0_CR = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
+ REG_BG0CNT_SUB = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
  uint16* map1 = (uint16*)BG_MAP_RAM_SUB(0);
  for(i=0;i<(256*192/8/8);i++)	map1[i]=i;
  lcdMainOnTop();

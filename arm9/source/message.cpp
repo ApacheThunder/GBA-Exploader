@@ -12,7 +12,7 @@ char	*cmd_m[4];
 char	*t_msg[22];
 char	*savmsg[6];
 
-static	char	*errmsg_j[14] = {
+static const char *errmsg_j[14] = {
 			"FATの初期化に失敗しました",			// 0
 			"適切なDLDIパッチを行ってください",		// 1
 			"Slot2拡張パックがセットされていません",	// 2
@@ -29,7 +29,7 @@ static	char	*errmsg_j[14] = {
 			"(A):確認"					// 13
 };
 
-static	char	*errmsg_e[14] = {
+static const char *errmsg_e[14] = {
 			"FAT initialization failed ",			// 0
 			"Please apply the appropriate DLDI Patch.",	// 1
 			"Slot2 expansion pack not found ",		// 2
@@ -47,7 +47,7 @@ static	char	*errmsg_e[14] = {
 };
 
 
-static	char	*cnfmsg_j[11] = {
+static const char *cnfmsg_j[11] = {
 			"(A):実行, (B):取消",				// 0
 			"現在のSRAMにあるSAVEデータを",			// 1
 			"SAVファイルに保存します",			// 2
@@ -61,7 +61,7 @@ static	char	*cnfmsg_j[11] = {
 			"設定(SRAMは失われます)していいですか？"	// 10
 };
 
-static	char	*cnfmsg_e[11] = {
+static const char *cnfmsg_e[11] = {
 			"(A):Run, (B):Cancel",				// 0
 			"Write save data in SRAM",			// 1
 			" to SAV file",					// 2
@@ -76,14 +76,14 @@ static	char	*cnfmsg_e[11] = {
 };
 
 
-static	char	*barmsg_j[4] = {
+static const char *barmsg_j[4] = {
 			"  NORを消去中...  ",				// 0
 			" NORにコピー中... ",				// 1
 			" RAMにロード中... ",				// 2
 			"  ROMを解析中...  "				// 3
 };
 
-static	char	*barmsg_e[4] = {
+static const char *barmsg_e[4] = {
 			"  Erasing NOR...   ",				// 0
 			" Copying to NOR... ",				// 1
 			" Loading to RAM... ",				// 2
@@ -91,14 +91,14 @@ static	char	*barmsg_e[4] = {
 };
 
 
-static	char	*cmd_m_j[4] = {
+static const char *cmd_m_j[4] = {
 			"  振動レベル ： (小)  ",
 			"  振動レベル ： (中)  ",
 			"  振動レベル ： (大)  ",
 			" ブラウザ用拡張メモリ "
 };
 
-static	char	*cmd_m_e[4] = {
+static const char *cmd_m_e[4] = {
 			" Rumble level: Weak   ",
 			" Rumble level: Medium ",
 			" Rumble level: Strong ",
@@ -106,7 +106,7 @@ static	char	*cmd_m_e[4] = {
 };
 
 
-static	char	*t_msg_j[22] = {
+static const char *t_msg_j[22] = {
 			"選択中のゲーム",
 			" PSRAMモード",
 			"(A):RAMにゲームをロードして実行    ",
@@ -131,7 +131,7 @@ static	char	*t_msg_j[22] = {
 			" SDRAMモード",
 };
 
-static	char	*t_msg_e[22] = {
+static const char *t_msg_e[22] = {
 			"Selected game",
 			"  PSRAM Mode ",
 			"(A):Run (B):Write SRAM to SAV file",
@@ -157,7 +157,7 @@ static	char	*t_msg_e[22] = {
 };
 
 
-static	char	*savmsg_j[6] = {
+static const char *savmsg_j[6] = {
 			" SRAMにSAVEデータをロード",		// 0
 			"(A):選択したファイルをロード",		// 1
 			"(B):ロードしない(新規ゲーム)",		// 2
@@ -166,7 +166,7 @@ static	char	*savmsg_j[6] = {
 			"(B):保存しない(取消)",			// 5
 };
 
-static	char	*savmsg_e[6] = {
+static const char *savmsg_e[6] = {
 			" Load SRAM from SAV file ",		// 0
 			"(A):Load from selected file",		// 1
 			"(B):No load(New Game)",		// 2
@@ -176,46 +176,31 @@ static	char	*savmsg_e[6] = {
 };
 
 
-void setLangMsg()
-{
+void setLangMsg() {
 	u32	UserLang = 0;
 	int	i;
 
-	UserLang = PersonalData->_user_data.language;
+	UserLang = PersonalData->language;
 
 	if(UserLang != 0) {
-		for(i = 0; i < 14; i++)
-			errmsg[i] = errmsg_e[i];
-		for(i = 0; i < 11; i++)
-			cnfmsg[i] = cnfmsg_e[i];
-		for(i = 0; i < 4; i++)
-			barmsg[i] = barmsg_e[i];
-		for(i = 0; i < 4; i++)
-			cmd_m[i] = cmd_m_e[i];
-		for(i = 0; i < 22; i++)
-			t_msg[i] = t_msg_e[i];
-		for(i = 0; i < 6; i++)
-			savmsg[i] = savmsg_e[i];
+		for(i = 0; i < 14; i++)errmsg[i] = (char*)errmsg_e[i];
+		for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_e[i];
+		for(i = 0; i < 4; i++)barmsg[i] = (char*)barmsg_e[i];
+		for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_e[i];
+		for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_e[i];
+		for(i = 0; i < 6; i++)savmsg[i] = (char*)savmsg_e[i];
 		return;
 	}
 
-	for(i = 0; i < 14; i++)
-		errmsg[i] = errmsg_j[i];
-	for(i = 0; i < 11; i++)
-		cnfmsg[i] = cnfmsg_j[i];
-	for(i = 0; i < 4; i++)
-		barmsg[i] = barmsg_j[i];
-	for(i = 0; i < 4; i++)
-		cmd_m[i] = cmd_m_j[i];
-	for(i = 0; i < 22; i++)
-		t_msg[i] = t_msg_j[i];
-	for(i = 0; i < 6; i++)
-		savmsg[i] = savmsg_j[i];
-
+	for(i = 0; i < 14; i++)errmsg[i] = (char*)errmsg_j[i];
+	for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_j[i];
+	for(i = 0; i < 4; i++)barmsg[i] = (char*)barmsg_j[i];
+	for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_j[i];
+	for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_j[i];
+	for(i = 0; i < 6; i++)savmsg[i] = (char*)savmsg_j[i];
 }
 
-static	bool	_isKanji1(u8 ch)
-{
+static	bool	_isKanji1(u8 ch) {
 	if((ch >= 0x81) && (ch <= 0x9F))
 		return true;
 	if((ch >= 0xE0) && (ch <= 0xEF))
@@ -225,8 +210,7 @@ static	bool	_isKanji1(u8 ch)
 	return false;
 }
 
-char *jstrncpy(char *s1, char *s2, size_t n)
-{
+char *jstrncpy(char *s1, char *s2, size_t n) {
 	bool	kan;
 
 	char  *p = s1;

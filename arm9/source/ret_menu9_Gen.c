@@ -6,14 +6,14 @@
 
 #include <nds.h>
 //#include <nds/registers_alt.h>	// devkitPror20
+#include <nds/arm9/dldi.h>
 
 #include <fat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
-extern u32	_io_dldi;
+// extern u32	_io_dldi;
 
 static	char	*menu_nam;
 static	char	name[32];
@@ -23,10 +23,10 @@ bool ret_menu_chk()
 	FILE	*fp;
 	char	buf[5];
 
-	buf[0] = _io_dldi & 0xFF;
-	buf[1] = (_io_dldi >> 8) & 0xFF;
-	buf[2] = (_io_dldi >> 16) & 0xFF;
-	buf[3] = (_io_dldi >> 24) & 0xFF;
+	buf[0] = io_dldi_data->ioInterface.ioType & 0xFF;
+	buf[1] = (io_dldi_data->ioInterface.ioType >> 8) & 0xFF;
+	buf[2] = (io_dldi_data->ioInterface.ioType >> 16) & 0xFF;
+	buf[3] = (io_dldi_data->ioInterface.ioType >> 24) & 0xFF;
 	buf[4] = 0;
 	sprintf(name, "/SoftReset.%s", buf);
 	fp = fopen(name, "rb");
@@ -38,7 +38,7 @@ bool ret_menu_chk()
 
 	menu_nam = NULL;
 
-	if(_io_dldi == 0x53444353) {		// SCDS
+	if(io_dldi_data->ioInterface.ioType == 0x53444353) {		// SCDS
 		menu_nam = "/MSFORSC.NDS";
 	}
 
@@ -46,23 +46,23 @@ bool ret_menu_chk()
 //		menu_nam = "/system/akmenu2_fat.nds";
 //	}
 
-	if(_io_dldi == 0x4F49524E) {		// N-Card
+	if(io_dldi_data->ioInterface.ioType == 0x4F49524E) {		// N-Card
 		menu_nam = "/udisk.nds";	// Žb’è
 	}
 
-	if(_io_dldi == 0x4E475052) {		// AK.R.P.G NAND
+	if(io_dldi_data->ioInterface.ioType == 0x4E475052) {		// AK.R.P.G NAND
 		menu_nam = "/akmenu4.nds";
 	}
 
-	if(_io_dldi == 0x53475052) {		// AK.R.P.G SD
+	if(io_dldi_data->ioInterface.ioType == 0x53475052) {		// AK.R.P.G SD
 		menu_nam = "/akmenu4.nds";
 	}
 
-	if(_io_dldi == 0x44533958) {		// X9 SD
+	if(io_dldi_data->ioInterface.ioType == 0x44533958) {		// X9 SD
 		menu_nam = "/loader.nds";
 	}
 
-	if(_io_dldi == 0x4F495454) {		// DSTT
+	if(io_dldi_data->ioInterface.ioType == 0x4F495454) {		// DSTT
 		menu_nam = "/TTMENU.DAT";
 	}
 

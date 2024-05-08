@@ -24,14 +24,6 @@ THE SOFTWARE.
 
 ---------------------------------------------------------------------------------*/
 
-
-
-
-
-
-
-
-
 #include <nds.h>
 #include <nds/registers_alt.h>
 
@@ -64,11 +56,11 @@ void resetARM9Memory()
     // trun on vram banks for clear
 	VRAM_CR = 0x80808080;
 	(*(vu32*)0x027FFE04) = 0;   // temporary variable
-	PALETTE[0] = 0xFFFF;
-	dmaFillWords((void*)0x027FFE04, PALETTE+1, (2*1024)-2);
-	dmaFillWords((void*)0x027FFE04, OAM,     2*1024);
-	dmaFillWords((void*)0x027FFE04, (void*)0x04000000, 0x56);  //clear main display registers
-	dmaFillWords((void*)0x027FFE04, (void*)0x04001000, 0x56);  //clear sub  display registers
+	BG_PALETTE[0] = 0xFFFF;
+	dmaFillWords(0, BG_PALETTE+1, (2*1024)-2);
+	dmaFillWords(0, OAM,     2*1024);
+	dmaFillWords(0, (void*)0x04000000, 0x56);  //clear main display registers
+	dmaFillWords(0, (void*)0x04001000, 0x56);  //clear sub  display registers
 
     // clear video registers
     REG_DISPCNT = 0;
@@ -90,3 +82,4 @@ void resetARM9Memory()
     REG_IE = 0;
     REG_IF = ~0;
 }
+

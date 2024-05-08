@@ -22,27 +22,32 @@ DATA		:=
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
+# ARCH	:=	-mthumb -mthumb-interwork
 ARCH	:=	-mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2\
-		-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer\
-		-ffast-math \
-		$(ARCH)
+CFLAGS	:=	-g -Wall -O2 \
+			-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer\
+			-ffast-math \
+			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM7
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -fno-rtti
+# CFLAGS	+=	$(INCLUDE) -DARM7
+CFLAGS	+=	$(INCLUDE) -DARM7 -fsigned-char
+CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
+CXXFLAGS	:=	$(CFLAGS)
 
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=ds_arm7.specs -g $(ARCH) -mno-fpu -Wl,-Map,../arm7.map
+LDFLAGS	=	-specs=ds_arm7.specs -g $(ARCH) -Wl,-Map,$(notdir $*).map
+# LDFLAGS	=	-specs=ds_arm7_iwram.specs -g $(ARCH) -Wl,-Map,$(notdir $*).map
+ 
 
-LIBS	:=	-lnds7
+LIBS	:= -lnds7
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBNDS) $(LIBFAT)
+LIBDIRS	:=	$(LIBNDS)
  
   
 #---------------------------------------------------------------------------------
@@ -52,8 +57,7 @@ LIBDIRS	:=	$(LIBNDS) $(LIBFAT)
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
  
-export ARM7BIN	:=	$(CURDIR)/arm7.bin
-export ARM7ELF	:=	$(CURDIR)/arm7.elf
+export ARM7ELF	:=	$(CURDIR)/$(TARGET).elf
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
@@ -107,11 +111,6 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-$(ARM7BIN)	:	$(ARM7ELF)
-	@$(OBJCOPY) -O binary $< $@
-	@echo built ... $(notdir $@)
-
-
 $(ARM7ELF)	:	$(OFILES)
 	@echo linking $(notdir $@)
 	@$(LD)  $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
@@ -130,3 +129,4 @@ $(ARM7ELF)	:	$(OFILES)
 #---------------------------------------------------------------------------------------
 endif
 #---------------------------------------------------------------------------------------
+

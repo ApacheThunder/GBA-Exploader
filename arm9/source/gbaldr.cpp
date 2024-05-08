@@ -1,7 +1,7 @@
 #include <nds.h>
 
 #include <fat.h>
-#include "fatdir_ex.h"
+// #include "fatdir_ex.h"
 #include <sys/iosupport.h>
 
 #include <stdio.h>
@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <string>
+#include <vector>
 
 //#include "disc_io.h"
 //#include "gba_nds_fat.h"
@@ -81,7 +84,7 @@ int	carttype = 0;
 
 extern	int save_sel(int mod, char *name);
 
-
+using namespace std;
 
 void SetEWINRam(u8 page)
 {
@@ -237,8 +240,7 @@ void SetM3Ram(u8 page)
 
 }
 
-bool	_set_M3(int sw)
-{
+bool	_set_M3(int sw) {
 	vu32	wait;
 	vu16 tmp;
 	vu8	a;
@@ -487,7 +489,7 @@ int checkFlashID()
 
 
 
-char	*Rudolph = "GBA ExpLoader by Rudolph (LocalCode v0.1)";
+char const *Rudolph = "GBA ExpLoader by Rudolph (LocalCode v0.1)";
 
 bool checkSRAM_cnf()
 {
@@ -1134,16 +1136,24 @@ static void _sort_file()
 	}
 }
 
+bool nameEndsWith (const string& name, const string& extension) {
+	if (name.size() == 0) return false;
+	if (name.front() == '.') return false;
 
-void FileListGBA()
-{
-	DIR_ITER	*dir;
+	const string ext = extension;
+	if (strcasecmp(name.c_str() + name.size() - ext.size(), ext.c_str()) == 0)return true;
+	return false;
+}
+
+// TODO: Fix Filelist to use new code based on port of NDS_Backup_Tool
+void FileListGBA() {
+	DIR	*dir;
 	struct stat	st;
-	char	fname[256];
-	char	lfnname[512];
+	// char	fname[256];
+	// char	lfnname[512];
 
-	u32	flen;
-	FILE	*gbaFile;
+	// u32	flen;
+	FILE *gbaFile;
 	int	i;
 
 //	mkdir("/GBA_SAVE");
@@ -1152,13 +1162,41 @@ void FileListGBA()
 	numFiles = 0;
 	numGames = 0;
 
-	dir = diropen(curpath);
+	chdir (curpath);
+	dir = opendir(curpath);
 	if(dir == NULL) {
 		strcpy(curpath, "/");
-		dir = diropen(curpath);
+		dir = opendir(curpath);
 	}
 
-        while(dirnextl(dir, fname, lfnname, &st) == 0) {
+	const char* GBAEXT = ".GBA";
+	const char* BINEXT = ".BIN";
+
+	if (dir != NULL) {
+		while(true) {
+			dirent* pent = readdir(dir);
+			if(pent == NULL)break;
+						
+			stat(pent->d_name, &st);
+
+			if (((string)pent->d_name).compare(".") != 0 && ((st.st_mode & S_IFMT) != S_IFDIR) && (nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT))) {
+				strcpy(fs[numFiles].filename, pent->d_name);
+				strcpy(fs[numFiles].Alias, pent->d_name);
+				fs[numFiles].type = st.st_mode;
+				FILE *file = fopen(pent->d_name, "rb");
+				if (file) {
+					fseek(file, 0, SEEK_END);
+					fs[numFiles].filesize = ftell(file);
+					fclose(file);
+				}
+				numFiles++;
+				if (numFiles > 199 )break;
+			}
+		}
+		closedir(dir);
+	}
+
+	/*while(dirnextl(dir, fname, lfnname, &st) == 0) {
 		flen = strlen(fname);
 		if(lfnname[0] == 0)
 			strcpy(lfnname, fname);
@@ -1175,9 +1213,10 @@ void FileListGBA()
 			numFiles++;
 			if(numFiles > 199)	break;
 		}
-	}
+	}*/
 
-	dirclose(dir);
+	// dirclose(dir);
+	// closedir(dir);
 
 	for(i = 0; i < numFiles; i++) {
 		sortfile[i] = i;
@@ -1188,8 +1227,7 @@ void FileListGBA()
 			sprintf(tbuf, "%s%s", curpath, fs[i].filename);
 			gbaFile = fopen(tbuf, "rb");
 			memset(tbuf, 0, 256);
-			if(gbaFile != NULL)
-				fread(tbuf, 1, 256, gbaFile);
+			if(gbaFile != NULL)fread(tbuf, 1, 256, gbaFile);
 			tbuf[0xB0] = 0;
 			strcpy(fs[i].gamecode, tbuf + 0xAC);
 			tbuf[0xAC] = 0;

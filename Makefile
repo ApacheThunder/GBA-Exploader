@@ -2,41 +2,59 @@
 .SUFFIXES:
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM)
+$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
+
+export TARGET := GBA_ExpLoader
+export TOPDIR := $(CURDIR)
+
+export VERSION_MAJOR	:= 0
+export VERSION_MINOR	:= 57
+export VERSTRING	:=	$(VERSION_MAJOR).$(VERSION_MINOR)
+
+# GMAE_ICON is the image used to create the game icon, leave blank to use default rule
+GAME_ICON :=
+
+# specify a directory which contains the nitro filesystem
+# this is relative to the Makefile
+# NITRO_FILES := nitroFiles
+
+
+# These set the information text in the nds file
+#GAME_TITLE     := My Wonderful Homebrew
+#GAME_SUBTITLE1 := built with devkitARM
+#GAME_SUBTITLE2 := http://devitpro.org
 
 include $(DEVKITARM)/ds_rules
 
-export TARGET		:=	$(shell basename $(CURDIR))
-export TOPDIR		:=	$(CURDIR)
-
-
-#---------------------------------------------------------------------------------
-# path to tools - this can be deleted if you set the path in windows
-#---------------------------------------------------------------------------------
-export PATH		:=	$(DEVKITARM)/bin:$(PATH)
-
-.PHONY: $(TARGET).arm7 $(TARGET).arm9
+.PHONY: data clean
 
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(TARGET).nds
-
-#$(TARGET).ds.gba	: $(TARGET).nds
+all: checkarm7 checkarm9 $(TARGET).nds
 
 #---------------------------------------------------------------------------------
-$(TARGET).nds	:	$(TARGET).arm7 $(TARGET).arm9
-	ndstool	-c GBA_ExpLoader.nds -7 arm7/arm7.bin -9 arm9/arm9.bin -b arm9/logo32.bmp "GBA ExpLoader;Version 0.57;By Rudolph"
+checkarm7:
+	$(MAKE) -C arm7
 
 #---------------------------------------------------------------------------------
-$(TARGET).arm7	: arm7/$(TARGET).elf
-$(TARGET).arm9	: arm9/$(TARGET).elf
+checkarm9:
+	$(MAKE) -C arm9
+
+#---------------------------------------------------------------------------------
+$(TARGET).nds : arm7/$(TARGET).elf arm9/$(TARGET).elf
+	@ndstool	-c $@ -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf \
+				-b $(CURDIR)/logo32.bmp "GBA ExpLoader;Version $(VERSTRING);By Rudolph;" \
+				-g GBEX 01 "GBAEXPLOADER" -z 80040000 -u 00030004 -a 00000138 -p 0001 \
+
+data:
+	@mkdir -p data
 
 #---------------------------------------------------------------------------------
 arm7/$(TARGET).elf:
 	$(MAKE) -C arm7
-	
+
 #---------------------------------------------------------------------------------
 arm9/$(TARGET).elf:
 	$(MAKE) -C arm9
@@ -45,4 +63,6 @@ arm9/$(TARGET).elf:
 clean:
 	$(MAKE) -C arm9 clean
 	$(MAKE) -C arm7 clean
-	rm -f $(TARGET).ds.gba $(TARGET).nds $(TARGET).arm7 $(TARGET).arm9
+	rm -rf data
+	rm -f $(TARGET).nds
+

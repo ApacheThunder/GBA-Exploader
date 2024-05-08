@@ -9,8 +9,9 @@
 #include <string.h>
 #include <time.h>
 #include <sys/dir.h>
+#include <dirent.h>
 
-#include "fatdir_ex.h"
+// #include "fatdir_ex.h"
 #include "message.h"
 #include "GBA_ini.h"
 
@@ -24,8 +25,7 @@ char	savnam[6][26];
 char	savext[6][4];
 bool	savexist[6];
 
-void _save_list(char *name)
-{
+void _save_list(char *name) {
 	struct tm *ptime;
 	struct stat st;
 	char	fname[512];

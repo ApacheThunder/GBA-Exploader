@@ -29,29 +29,33 @@
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
 
-/*void gbaMode() {
+void gbaMode() {
 	vu32	vr;
 
 	REG_IME = IME_DISABLE;
 	for(vr = 0; vr < 0x1000; vr++);	// Wait ARM9
 
-	if (((*(vu32*)0x027FFCE4 >> 3) & 0x01) == 0x01)
+	if (((*(vu32*)0x027FFCE4 >> 3) & 0x01) == 0x01) {
 		writePowerManagement(0, PM_BACKLIGHT_BOTTOM | PM_SOUND_AMP);
-	else	writePowerManagement(0, PM_BACKLIGHT_TOP | PM_SOUND_AMP);
+	} else { 
+		writePowerManagement(0, PM_BACKLIGHT_TOP | PM_SOUND_AMP);
+	}
 
 	swiSwitchToGBAMode();
 //	asm("mov    r2, #0x40");
 //	asm("swi    0x1F0000");
 
 	while(1);
-}*/
+}
 
 
 volatile bool exitflag = false;
 
 void powerButtonCB() { exitflag = true; }
 
-void VblankHandler(void) { /*Wifi_Update();*/ }
+void VblankHandler(void) { 
+	// Wifi_Update();
+}
 
 
 void VcountHandler() { inputGetAndSend(); }
@@ -59,6 +63,7 @@ void VcountHandler() { inputGetAndSend(); }
 int main() {
 	readUserSettings();
 	ledBlink(0);
+	bool switchedMode = false;
 	
 	irqInit();
 	// Start the RTC tracking IRQ
@@ -73,18 +78,23 @@ int main() {
 	irqSet(IRQ_VCOUNT, VcountHandler);
 	irqSet(IRQ_VBLANK, VblankHandler);
 	
-	irqEnable( IRQ_VBLANK | IRQ_VCOUNT);
+	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 	
 	/*if (REG_SNDEXTCNT != 0) {
 		i2cWriteRegister(0x4A, 0x12, 0x00);	// Press power-button for auto-reset
 		i2cWriteRegister(0x4A, 0x70, 0x01);	// Bootflag = Warmboot/SkipHealthSafety
 	}*/
 
-
 	setPowerButtonCB(powerButtonCB);
 
 	// Keep the ARM7 mostly idle
-	while(1)swiWaitForVBlank();
+	while(1) {
+		if(fifoCheckValue32(FIFO_USER_01) && !switchedMode) {
+			switchedMode = true;
+			gbaMode();
+		}
+		swiWaitForVBlank();
+	}
 	
 	return 0;
 }

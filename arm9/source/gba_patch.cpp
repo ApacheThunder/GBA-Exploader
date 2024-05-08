@@ -21,8 +21,7 @@ u8	*RemainPtr;
 u32	RemainByte;
 
 
-static	int _type_chk(u32 *pbuf, u32 c, u32 ofs)
-{
+static	int _type_chk(u32 *pbuf, u32 c, u32 ofs) {
 	switch(pbuf[c]) {
 		case 0x53414C46:			// FLASH
 			if(pbuf[c + 1] == 0x5F4D3148) {			// FLASH1M_V

@@ -94,20 +94,10 @@ u8	*rwbuf;
 extern	int	carttype;
 
 
-void Vblank()
-{
-}
+void Vblank() { }
 
-void FIFOInit()
-{
-	REG_IPC_FIFO_CR = IPC_FIFO_ENABLE | IPC_FIFO_SEND_CLEAR;
-}
-
-
-void FIFOSend(u32 val)
-{
-	REG_IPC_FIFO_TX = val;
-}
+// void FIFOInit() { REG_IPC_FIFO_CR = IPC_FIFO_ENABLE | IPC_FIFO_SEND_CLEAR; }
+// void FIFOSend(u32 val) { REG_IPC_FIFO_TX = val; }
 
 
 
@@ -137,12 +127,13 @@ extern	bool	ret_menu_chk(void);
 extern	bool	ret_menu9_Gen(void);
 extern	void	ret_menu9_GENs(void);
 
-void turn_off(int cmd)
-{
-	if(cmd == 0)			// ìdåπíf
-		FIFOSend(IPC_CMD_TURNOFF);
-	if(cmd == 1) {			// R4 Soft Reset
-		FIFOSend(IPC_CMD_SR_R4TF);
+void turn_off(int cmd) {
+	if(cmd == 0) {			// ìdåπíf
+		// FIFOSend(IPC_CMD_TURNOFF);
+		systemShutDown();
+	}
+	/*if(cmd == 1) {			// R4 Soft Reset
+		// FIFOSend(IPC_CMD_SR_R4TF);
 		REG_IME = 0;
 		REG_IE = 0;
 		REG_IF = REG_IF;
@@ -163,14 +154,13 @@ void turn_off(int cmd)
 		ret_menu9_Gen();
 		FIFOSend(IPC_CMD_SR_GEN);
 		ret_menu9_GENs();
-	}
+	}*/
 
 	while(1);
 }
 
 
-void gba_frame()
-{
+void gba_frame() {
 	int	ret;
 	int	x=0, y=0;
 	u16	*pDstBuf1;
@@ -198,8 +188,7 @@ void gba_frame()
 	}
 }
 
-static void resetToSlot2()
-{
+static void resetToSlot2() {
 	vu32	vr;
 
     // make arm9 loop code
@@ -209,8 +198,8 @@ static void resetToSlot2()
 
 	sysSetCartOwner(BUS_OWNER_ARM7);  // ARM7 has access to GBA cart
 
-	FIFOSend(IPC_CMD_SLOT2);
-
+	// FIFOSend(IPC_CMD_SLOT2);
+	
 	for(vr = 0; vr < 0x20000; vr++);	// Wait ARM7
 
 	DC_FlushAll();
@@ -218,12 +207,11 @@ static void resetToSlot2()
 	swiSoftReset();
 }
 
-void gbaMode()
-{
+void gbaMode() {
 
 	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
-	        resetARM9Memory();
-	        resetToSlot2();
+		resetARM9Memory();
+		resetToSlot2();
 	}
 
 	videoSetMode(0);
@@ -239,7 +227,8 @@ void gbaMode()
 
 	gba_frame();
 
-	FIFOSend(IPC_CMD_GBAMODE);
+	// FIFOSend(IPC_CMD_GBAMODE);
+	fifoSendValue32(FIFO_USER_01, 1);
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	REG_IME = 0;
 
@@ -247,8 +236,7 @@ void gbaMode()
 } 
 
 
-void err_cnf(int n1, int n2)
-{
+void err_cnf(int n1, int n2) {
 	int	len;
 	int	x1, x2;
 	int	y1, y2;
@@ -297,8 +285,7 @@ void err_cnf(int n1, int n2)
 }
 
 
-int cnf_inp(int n1, int n2)
-{
+int cnf_inp(int n1, int n2) {
 	int	len;
 	int	x1, x2;
 	int	y1, y2;
@@ -349,8 +336,7 @@ int cnf_inp(int n1, int n2)
 u16	*gbar = NULL;
 int	oldper;
 
-void dsp_bar(int mod, int per)
-{
+void dsp_bar(int mod, int per) {
 	int	x1, x2;
 	int	y1, y2;
 	int	xi, yi;
@@ -407,8 +393,7 @@ void dsp_bar(int mod, int per)
 
 
 
-void RamClear()
-{
+void RamClear() {
 	u32	*a8;	//, *a9;
 	int	i;
 
@@ -433,15 +418,10 @@ int	GBAmode;
 int	r4tf;
 
 
-void _dsp_clear()
-{
-	DrawBox_SUB(SubScreen, 0, 28, 255, 114, 0, 1);
-
-}
+void _dsp_clear() {	DrawBox_SUB(SubScreen, 0, 28, 255, 114, 0, 1); }
 
 
-int rumble_cmd()
-{
+int rumble_cmd() {
 	int	cmd = 0;
 	u32	ky, repky;
 	int	i;
@@ -552,8 +532,7 @@ int rumble_cmd()
 }
 
 
-void _gba_dsp(int no, int mod, int x, int y)
-{
+void _gba_dsp(int no, int mod, int x, int y) {
 	char	dsp[40];
 	int	sn;
 
@@ -613,8 +592,7 @@ extern	bool checkSRAM_cnf();
 extern	int checkSRAM(char *name);
 
 
-void _gba_sel_dsp(int no, int yc, int mod)
-{
+void _gba_sel_dsp(int no, int yc, int mod) {
 	int	x, y;
 	int	st, i;
 	int	len;
@@ -790,8 +768,7 @@ extern	void FileListGBA(void);
 extern	int save_sel(int mod, char *name);
 
 
-int gba_sel()
-{
+int gba_sel() {
 //	u32	i;
 
 	int	cmd = -1;
@@ -1051,8 +1028,7 @@ inp_key();
 extern	void	setLang(void);
 
 
-void mainloop(void)
-{
+void mainloop(void) {
 //	vu16	reg;
 
 	FILE	*r4dt;
@@ -1114,10 +1090,11 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	if(carttype <= 2) {
 //		SetRampage(16);
 //		SetShake(0x08);
-		if(carttype == 1)
+		if(carttype == 1) {
 			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
-		else
+		} else {
 			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 );
+		}
 	}
 	if(carttype == 3) {
 		SetRompage(0x300);
@@ -1198,8 +1175,7 @@ inp_key();
 
 	if(checkSRAM_cnf() == false) {
 		if(carttype != 5) {
-			if(cnf_inp(9, 10) & KEY_B)
-				turn_off(r4tf);
+			if(cnf_inp(9, 10) & KEY_B)turn_off(r4tf);
 		}
 	}
 
@@ -1215,21 +1191,18 @@ inp_key();
 
 	GBAmode = 0;
 	if(checkSRAM(filename) && checkBackup()) {
-		if(save_sel(1, filename) >= 0)
-			writeSramToFile(filename);
+		if(save_sel(1, filename) >= 0)writeSramToFile(filename);
 	}
 
 	getGBAmode();
-	if((GBAmode == 2) && (r4tf == 0))
-		GBAmode = 0;
-	if(carttype > 2)
-		GBAmode = 0;
+	if((GBAmode == 2) && (r4tf == 0))GBAmode = 0;
+	if(carttype > 2)GBAmode = 0;
 
 	cmd = -1;
 	while(cmd == -1) {
-		if(GBAmode == 2)
+		if(GBAmode == 2) {
 			cmd = rumble_cmd();
-		else {
+		} else {
 //			FileListGBA();
 //			setcurpath();
 //			if(numFiles == 0)
@@ -1270,21 +1243,21 @@ int main(void) {
 
 	int	i;
 
-	vramSetPrimaryBanks(VRAM_A_LCD ,  VRAM_B_LCD  , VRAM_C_SUB_BG, VRAM_D_MAIN_BG  );
+	vramSetPrimaryBanks(VRAM_A_LCD, VRAM_B_LCD, VRAM_C_SUB_BG, VRAM_D_MAIN_BG);
 	powerOn(POWER_ALL);
 
 	irqInit();
 	irqSet(IRQ_VBLANK, Vblank);
 	irqEnable(IRQ_VBLANK);
-	FIFOInit();
+	// FIFOInit();
 
- videoSetMode(MODE_FB0 | DISPLAY_BG2_ACTIVE);
- videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE );
- // SUB_BG0_CR = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
- REG_BG0CNT_SUB = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
- uint16* map1 = (uint16*)BG_MAP_RAM_SUB(0);
- for(i=0;i<(256*192/8/8);i++)	map1[i]=i;
- lcdMainOnTop();
+	videoSetMode(MODE_FB0 | DISPLAY_BG2_ACTIVE);
+	videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE );
+	// SUB_BG0_CR = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
+	REG_BG0CNT_SUB = BG_256_COLOR | BG_MAP_BASE(0) | BG_TILE_BASE(1);
+	uint16* map1 = (uint16*)BG_MAP_RAM_SUB(0);
+	for(i=0;i<(256*192/8/8);i++)	map1[i]=i;
+	lcdMainOnTop();
 	//ÉÅÉCÉìâÊñ ÇîíÇ≈ìhÇËÇ¬Ç‘ÇµÇ‹Ç∑
 	ClearBG( MainScreen, RGB15(31,31,31) );
 

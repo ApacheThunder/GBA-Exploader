@@ -17,3 +17,4 @@ extern	void	GBA_ini();
 #ifdef __cplusplus
 }
 #endif
+

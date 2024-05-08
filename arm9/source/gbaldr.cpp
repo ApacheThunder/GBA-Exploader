@@ -1,7 +1,6 @@
 #include <nds.h>
 
 #include <fat.h>
-// #include "fatdir_ex.h"
 #include <sys/iosupport.h>
 
 #include <stdio.h>
@@ -58,36 +57,35 @@ extern "C" {
 #endif
 
 
-extern	char	curpath[];
-extern	int	sortfile[];
-struct	GBA_File {
-		char	Alias[13];
-		u32	type;
-		char	filename[512];
-		u32	filesize;
-		char	gametitle[13];
-		char	gamecode[5];
+extern char curpath[];
+extern int	sortfile[];
+
+struct GBA_File {
+	u32	type;
+	char filename[512];
+	u32	filesize;
+	char gametitle[13];
+	char gamecode[5];
 };
-extern	struct	GBA_File	fs[];
-extern	char	tbuf[];
-extern	u8	*rwbuf;
 
-extern	int	numFiles;
-extern	int	numGames;
+extern struct GBA_File fs[];
+extern char tbuf[];
+extern u8 *rwbuf;
 
-extern	int	GBAmode;
+extern int numFiles;
+extern int numGames;
 
-static	u32	savesize;
+extern int GBAmode;
+
+static u32 savesize;
 
 int	carttype = 0;
 
-
-extern	int save_sel(int mod, char *name);
+extern int save_sel(int mod, char *name);
 
 using namespace std;
 
-void SetEWINRam(u8 page)
-{
+void SetEWINRam(u8 page) {
 	vu32	wait;
 	vu8	a;
 
@@ -106,8 +104,7 @@ void SetEWINRam(u8 page)
 }
 
 
-int cehck_EWIN()
-{
+int cehck_EWIN() {
 	vu32	wait;
 	vu8	a, a8, a9, aa, org;
 
@@ -178,8 +175,7 @@ int cehck_EWIN()
 	return(1);
 }
 
-bool	Close_EWIN()
-{
+bool Close_EWIN() {
 	vu8	a;
 
 
@@ -200,8 +196,7 @@ bool	Close_EWIN()
 
 
 
-void SetM3Ram(u8 page)
-{
+void SetM3Ram(u8 page) {
 	u32	mode;
 	vu16	tmp;
 
@@ -241,7 +236,7 @@ void SetM3Ram(u8 page)
 }
 
 bool	_set_M3(int sw) {
-	vu32	wait;
+	vu32 wait;
 	vu16 tmp;
 	vu8	a;
 
@@ -376,16 +371,13 @@ bool	_set_M3(int sw) {
 	return true;
 }
 
-bool	Close_M3()
-{
+bool Close_M3() {
 	_set_M3(0);
 	return true;
 }
 
-int cehck_M3()
-{
+int cehck_M3() {
 	vu16 tmp;
-
 
 	_set_M3(1);
 	tmp = *(vu16*)0x08000000;
@@ -407,8 +399,7 @@ int cehck_M3()
 
 
 
-void	_RamPG()
-{
+void	_RamPG() {
 	if(carttype == 3) {
 		SetRampage(USE_SRAM_PG_EZ4);
 		return;
@@ -431,8 +422,7 @@ void	_RamPG()
 
 }
 
-void	_RamSave(int bnk)
-{
+void _RamSave(int bnk) {
 	if(carttype == 3) {
 		SetRampage(USE_SRAM_PSR_EZ4 + bnk * 16);
 		return;
@@ -446,15 +436,15 @@ void	_RamSave(int bnk)
 		return;
 	}
 
-	if(GBAmode == 0)
+	if(GBAmode == 0) {
 		SetRampage(USE_SRAM_PSR + bnk * 16);
-	else	SetRampage(USE_SRAM_NOR + bnk * 16);
+	} else {
+		SetRampage(USE_SRAM_NOR + bnk * 16);
+	}
 	return;
-
 }
 
-int checkFlashID()
-{
+int checkFlashID() {
 	int	ewin;
 	u32	id;
 
@@ -468,22 +458,20 @@ int checkFlashID()
 	CloseNorWrite();
 
 	carttype = id;
-	if(id == 0x227E2218)
-		carttype = 1;
-	if(id == 0x227E2202)
-		carttype = 2;
-	if(id == 0x227E2220)		// EZ4
-		carttype = 3;
-	if(carttype == 0) {
-		if(cehck_M3())
-			carttype = 6;
+	
+	switch (id) {
+		case 0x227E2218: carttype = 1;
+		case 0x227E2202: carttype = 2; 
+		case 0x227E2220: carttype = 3; // EZ4
 	}
+	
+	if(carttype == 0 && cehck_M3())carttype = 6;
+	
 	if(carttype == 0) {
 		ewin = cehck_EWIN();
-		if(ewin > 0)
-			carttype = 3 + ewin;
+		if(ewin > 0)carttype = 3 + ewin;
 	}
-
+	
 	return(carttype);
 }
 
@@ -491,8 +479,7 @@ int checkFlashID()
 
 char const *Rudolph = "GBA ExpLoader by Rudolph (LocalCode v0.1)";
 
-bool checkSRAM_cnf()
-{
+bool checkSRAM_cnf() {
 	int	i;
 
 	ctrl_get();
@@ -509,8 +496,7 @@ bool checkSRAM_cnf()
 }
 
 
-int checkSRAM(char *name)
-{
+int checkSRAM(char *name) {
 	int	i, ln;
 
 
@@ -557,8 +543,7 @@ int checkSRAM(char *name)
 	return true;
 }
 
-void setGBAmode()
-{
+void setGBAmode() {
 	if(ctrl.mode != (char)GBAmode) {
 		ctrl.mode = (char)GBAmode;
 //		if(carttype < 4)
@@ -569,8 +554,7 @@ void setGBAmode()
 	}
 }
 
-void getGBAmode()
-{
+void getGBAmode() {
 //	ctrl_get();
 	GBAmode = ctrl.mode;
 	if((GBAmode < 0) || (GBAmode > 2)) {
@@ -579,16 +563,14 @@ void getGBAmode()
 	}
 }
 
-void setcurpath()
-{
+void setcurpath() {
 	memset(ctrl.path, 0, 256);
 	strcpy((char *)ctrl.path, curpath);
 	ctrl_set();
 
 }
 
-void getcurpath()
-{
+void getcurpath() {
 	if(ctrl.path[0] != '/') {
 		ctrl.path[0] = '/';
 		ctrl.path[1] = 0;
@@ -641,20 +623,16 @@ bool getSaveFilename(int sel, char *savename)
 }
 *******************/
 
-bool checkBackup()
-{
-	if(GBAmode == 1)
-		return true;
+bool checkBackup() {
+	if(GBAmode == 1)return true;
 
-	if(ctrl.save_flg[GBAmode] == 0xFF)
-		return false;
+	if(ctrl.save_flg[GBAmode] == 0xFF)return false;
 
 	return true;
 }
 
 
-void writeSramToFile(char *savename)
-{
+void writeSramToFile(char *savename) {
 	FILE	*saver;
 	u32	len;
 
@@ -699,8 +677,7 @@ void writeSramToFile(char *savename)
 
 void _WritePSram(uint32 address, u8* data , uint32 size );
 
-void SRAMdump(int cmd)
-{
+void SRAMdump(int cmd) {
 	FILE	*dmp;
 	int	i;
 	int	mx;
@@ -756,8 +733,7 @@ void SRAMdump(int cmd)
 	_RamSave(0);
 }
 
-void blankSRAM(char *savename)
-{
+void blankSRAM(char *savename) {
 
 	memset(rwbuf, 0xFF, USE_SRAM / 2);
 
@@ -782,8 +758,7 @@ void blankSRAM(char *savename)
 		CloseNorWrite();
 }
 
-void writeSramFromFile(char *savename)
-{	
+void writeSramFromFile(char *savename) {	
 	FILE	*saver;
 
 	if(savename[0] == 0) return;
@@ -833,8 +808,7 @@ void writeSramFromFile(char *savename)
 }
 
 
-void _ReadPSram(uint32 address, u8* data , uint32 size )
-{
+void _ReadPSram(uint32 address, u8* data , uint32 size ) {
 	u32	i;
 	u16* pData = (u16*)data;
 	u16* sData = (u16*)address;
@@ -843,14 +817,12 @@ void _ReadPSram(uint32 address, u8* data , uint32 size )
 		pData[i] = sData[i];
 }
 
-void _WritePSram(uint32 address, u8* data , uint32 size )
-{
+void _WritePSram(uint32 address, u8* data , uint32 size ) {
 	u32	i;
 	u16* sData = (u16*)data;
 	u16* pData = (u16*)address;
 
-	for(i = 0; i < size / 2; i++)
-		pData[i] = sData[i];
+	for(i = 0; i < size / 2; i++)pData[i] = sData[i];
 }
 
 
@@ -858,8 +830,7 @@ extern	void turn_off(int cmd);
 extern	void dsp_bar(int mod, int per);
 
 
-int writeFileToNor(int sel)
-{
+int writeFileToNor(int sel) {
 	FILE	*gbaFile;
 	char	savName[512];
 	u32	siz, wsz;
@@ -878,14 +849,15 @@ int writeFileToNor(int sel)
 	if(checkSRAM(savName) == false) {
 		err_cnf(4, 5);
 	} else {
-		if(save_sel(1, savName) >= 0)
-			writeSramToFile(savName);
+		if(save_sel(1, savName) >= 0)writeSramToFile(savName);
 	}
 
-	if((fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'G') ||
-		(fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'g'))
+	// if((fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'G') || (fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'g')) {
+	if((fs[sel].filename[strlen(fs[sel].filename) - 3] != 'G') || (fs[sel].filename[strlen(fs[sel].filename) - 3] != 'g')) {
 		gba = false;
-	else	gba = true;
+	} else {
+		gba = true;
+	}
 
 	sprintf(tbuf, "%s%s", curpath, fs[sel].filename);
 
@@ -954,8 +926,7 @@ int writeFileToNor(int sel)
 }
 
 
-int writeFileToRam(int sel)
-{
+int writeFileToRam(int sel) {
 	FILE	*gbaFile;
 	char	savName[512];
 	u32	siz;
@@ -973,19 +944,19 @@ int writeFileToRam(int sel)
 	else	exp = 0x08060000;
 	exps = exp;
 
-	if(fs[sel].filesize > fsz) {
-		return(1);
-	}
+	if(fs[sel].filesize > fsz)return(1);
 
 
 //	if(checkSRAM(savName) == false) {
 //		err_cnf(4, 5);
 //	} else	writeSramToFile(savName);
 
-	if((fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'G') ||
-		(fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'g'))
+	// if((fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'G') || (fs[sel].Alias[strlen(fs[sel].Alias) - 3] != 'g')) {
+	if((fs[sel].filename[strlen(fs[sel].filename) - 3] != 'G') || (fs[sel].filename[strlen(fs[sel].filename) - 3] != 'g')) {
 		gba = false;
-	else	gba = true;
+	} else {
+		gba = true;
+	}
 
 	sprintf(tbuf, "%s%s", curpath, fs[sel].filename);
 
@@ -1066,8 +1037,7 @@ int writeFileToRam(int sel)
 }
 
 
-void QSort(int left, int right)
-{
+void QSort(int left, int right) {
 	int	i, j;
 	int	p;
 	int	tmp;
@@ -1103,8 +1073,7 @@ void QSort(int left, int right)
 }
 
 
-static void _sort_file()
-{
+static void _sort_file() {
 	int	i, j;
 	int	no;
 
@@ -1149,21 +1118,15 @@ bool nameEndsWith (const string& name, const string& extension) {
 void FileListGBA() {
 	DIR	*dir;
 	struct stat	st;
-	// char	fname[256];
-	// char	lfnname[512];
-
-	// u32	flen;
 	FILE *gbaFile;
 	int	i;
 
-//	mkdir("/GBA_SAVE");
-
-//	FAT_CWD("/GBA_Exp");
 	numFiles = 0;
 	numGames = 0;
 
 	chdir (curpath);
 	dir = opendir(curpath);
+	
 	if(dir == NULL) {
 		strcpy(curpath, "/");
 		dir = opendir(curpath);
@@ -1176,47 +1139,25 @@ void FileListGBA() {
 		while(true) {
 			dirent* pent = readdir(dir);
 			if(pent == NULL)break;
-						
 			stat(pent->d_name, &st);
-
-			if (((string)pent->d_name).compare(".") != 0 && ((st.st_mode & S_IFMT) != S_IFDIR) && (nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT))) {
+			if ((((string)pent->d_name).compare(".") == 0) || ((st.st_mode & S_IFMT) == S_IFDIR) || nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT)) {
 				strcpy(fs[numFiles].filename, pent->d_name);
-				strcpy(fs[numFiles].Alias, pent->d_name);
+				// strcpy(fs[numFiles].Alias, pent->d_name);
 				fs[numFiles].type = st.st_mode;
-				FILE *file = fopen(pent->d_name, "rb");
-				if (file) {
-					fseek(file, 0, SEEK_END);
-					fs[numFiles].filesize = ftell(file);
-					fclose(file);
+				if ((((string)pent->d_name).compare(".") != 0) && ((st.st_mode & S_IFMT) != S_IFDIR)) {
+					FILE *file = fopen(pent->d_name, "rb");
+					if (file) {
+						fseek(file, 0, SEEK_END);
+						fs[numFiles].filesize = ftell(file);
+						fclose(file);
+					}
 				}
 				numFiles++;
-				if (numFiles > 199 )break;
+				if (numFiles > 199)break;
 			}
 		}
 		closedir(dir);
 	}
-
-	/*while(dirnextl(dir, fname, lfnname, &st) == 0) {
-		flen = strlen(fname);
-		if(lfnname[0] == 0)
-			strcpy(lfnname, fname);
-		if(((st.st_mode & S_IFDIR) && strcmp(fname, ".")) ||
-		   ((fname[flen - 3] == 'G') && (fname[flen - 2] == 'B') && (fname[flen - 1] == 'A')) ||
-		   ((fname[flen - 3] == 'B') && (fname[flen - 2] == 'I') && (fname[flen - 1] == 'N'))) {
-			strcpy(fs[numFiles].Alias, fname);
-			strcpy(fs[numFiles].filename, lfnname);
-//			strcpy(fs[numFiles].filename, fname);
-			fs[numFiles].filesize = st.st_size;
-			fs[numFiles].type = st.st_mode;
-//			if((st.st_mode & S_IFDIR) && !strcmp(fname, ".."))
-//				strcpy(fs[numFiles].filename, "..");
-			numFiles++;
-			if(numFiles > 199)	break;
-		}
-	}*/
-
-	// dirclose(dir);
-	// closedir(dir);
 
 	for(i = 0; i < numFiles; i++) {
 		sortfile[i] = i;
@@ -1237,12 +1178,11 @@ void FileListGBA() {
 		}
 	}
 
-	if(numFiles > 1)
-//		QSort(0, numFiles - 1);
-		_sort_file();
+	if(numFiles > 1)_sort_file();
 }
 
 
 #ifdef __cplusplus
 }
 #endif
+

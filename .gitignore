@@ -41,6 +41,7 @@
 *.arm7
 *.arm9
 *.elf
+*.dldi
 build
 data
 title

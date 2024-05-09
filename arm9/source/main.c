@@ -197,32 +197,28 @@ static void resetToSlot2() {
 	swiSoftReset();
 }
 
-void gbaMode() {
+ITCM_CODE void gbaMode() {
 
-	/*if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
+	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
 		resetARM9Memory();
 		resetToSlot2();
-	}*/
+	}
 
 	videoSetMode(0);
 	videoSetModeSub(0);
 
-	// vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
 	vramSetPrimaryBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
 //	vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_ARM7, VRAM_D_ARM7);
 
 	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
-	
-//	FIFOSend(IPC_CMD_GBAMODE);
-	fifoSendValue32(FIFO_USER_01, 1);
 
 	gba_frame();
 
 	// FIFOSend(IPC_CMD_GBAMODE);
-	fifoSendValue32(FIFO_USER_01, 1);
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
+	fifoSendValue32(FIFO_USER_01, 1);
 	REG_IME = 0;
-	while(1)swiWaitForVBlank();
+	while(1);
 } 
 
 

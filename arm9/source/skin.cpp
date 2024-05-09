@@ -7,9 +7,6 @@
 #include <string.h>
 #include <ctype.h>
 
-//#include "disc_io.h"
-//#include "gba_nds_fat.h"
-
 #include "skin.h"
 
 
@@ -19,30 +16,29 @@
 #define BI_Bitfields (3)
 
 typedef struct {
-  u8 bfType[2];
-  u32 bfSize;
-  u16 bfReserved1;
-  u16 bfReserved2;
-  u32 bfOffset;
-  u32 biSize;
-  u32 biWidth;
-  u32 biHeight;
-  u16 biPlanes;
-  u16 biBitCount;
-  u32 biCopmression;
-  u32 biSizeImage;
-  u32 biXPixPerMeter;
-  u32 biYPixPerMeter;
-  u32 biClrUsed;
-  u32 biCirImportant;
-  u8 *pPalette;
-  u8 *pBitmap;
-  u32 DataWidth;
+	u8 bfType[2];
+	u32 bfSize;
+	u16 bfReserved1;
+	u16 bfReserved2;
+	u32 bfOffset;
+	u32 biSize;
+	u32 biWidth;
+	u32 biHeight;
+	u16 biPlanes;
+	u16 biBitCount;
+	u32 biCopmression;
+	u32 biSizeImage;
+	u32 biXPixPerMeter;
+	u32 biYPixPerMeter;
+	u32 biClrUsed;
+	u32 biCirImportant;
+	u8 *pPalette;
+	u8 *pBitmap;
+	u32 DataWidth;
 } TBMPHeader;
 
 
-static u16 GetVariable16bit(void *pb)
-{
+static u16 GetVariable16bit(void *pb) {
   u16 res;
   u8 *pb8=(u8*)pb;
   
@@ -52,8 +48,7 @@ static u16 GetVariable16bit(void *pb)
   return(res);
 }
 
-static u32 GetVariable32bit(void *pb)
-{
+static u32 GetVariable32bit(void *pb) {
   u32 res;
   u8 *pb8=(u8*)pb;
   
@@ -66,8 +61,7 @@ static u32 GetVariable32bit(void *pb)
 }
 
 
-static bool GetBMPHeader(u8 *pb,TBMPHeader *pBMPHeader)
-{
+static bool GetBMPHeader(u8 *pb,TBMPHeader *pBMPHeader) {
   if(pb==NULL){
 //    BMP_LoadErrorStr="SourceData Null.";
     return(false);
@@ -153,21 +147,20 @@ static bool GetBMPHeader(u8 *pb,TBMPHeader *pBMPHeader)
 }
 
 
-static bool intLoadBM(const char *bmpfn,u16 *pbm,const u32 bmw,const u32 bmh)
-{
-	  FILE *fh;
+static bool intLoadBM(const char *bmpfn,u16 *pbm,const u32 bmw,const u32 bmh) {
+	FILE *fh;
 
 
 //  bmerrstr1[0]=0;
 //  bmerrstr2[0]=0;
   
-  if(pbm==NULL){
-//    snprintf(bmerrstr1,256,"BitmapMemory is NULL.");
-//    snprintf(bmerrstr2,256,"The memory is insufficient?");
-//    _consolePrintf("%s\n",bmerrstr1);
-//    _consolePrintf("%s\n",bmerrstr2);
-    return(false);
-  }
+	if(pbm == NULL) {
+//		snprintf(bmerrstr1,256,"BitmapMemory is NULL.");
+//		snprintf(bmerrstr2,256,"The memory is insufficient?");
+//		_consolePrintf("%s\n",bmerrstr1);
+//		_consolePrintf("%s\n",bmerrstr2);
+		return(false);
+	}
   
   u8 *bmdata = NULL;
   u32 bmsize;
@@ -175,156 +168,152 @@ static bool intLoadBM(const char *bmpfn,u16 *pbm,const u32 bmw,const u32 bmh)
     fh=fopen(bmpfn, "rb");
 
   
-  if(fh!=NULL){
-    fseek(fh, 0, SEEK_END);
-    bmsize=ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-    bmdata = (u8*)malloc(bmsize);
-    
-    fread(bmdata, 1, bmsize, fh);
-    fclose(fh);
-  }
+	if(fh != NULL) {
+		fseek(fh, 0, SEEK_END);
+		bmsize=ftell(fh);
+		fseek(fh, 0, SEEK_SET);
+		bmdata = (u8*)malloc(bmsize);
+		
+		fread(bmdata, 1, bmsize, fh);
+		fclose(fh);
+	}
 
-  if(bmdata==NULL){
-    return(false);
-    }else{
-//    _consolePrintf("loadskin /shell/%s\n",bmpfn);
-  }
+	if(bmdata==NULL){
+		return(false);
+	}/* else {
+		_consolePrintf("loadskin /shell/%s\n",bmpfn);
+	}*/
   
-  TBMPHeader BMPHeader;
+	TBMPHeader BMPHeader;
   
-  if(GetBMPHeader(bmdata,&BMPHeader)==false){
-//    snprintf(bmerrstr1,256,"Request /shell/%s WindowsBitmapFormat",bmpfn);
-//   snprintf(bmerrstr2,256,"%s",BMP_LoadErrorStr);
-//    _consolePrintf("%s\n",bmerrstr1);
-//    _consolePrintf("%s\n",bmerrstr2);
-    free(bmdata); bmdata=NULL;
-    return(false);
-  }
+	if(!GetBMPHeader(bmdata,&BMPHeader)) {
+//		snprintf(bmerrstr1,256,"Request /shell/%s WindowsBitmapFormat",bmpfn);
+//		snprintf(bmerrstr2,256,"%s",BMP_LoadErrorStr);
+//		_consolePrintf("%s\n",bmerrstr1);
+//		_consolePrintf("%s\n",bmerrstr2);
+		free(bmdata); bmdata=NULL;
+		return(false);
+	}
   
-  if((BMPHeader.biWidth==1)&&(BMPHeader.biHeight==1)){
-    free(bmdata); bmdata=NULL;
-    return(false);
-  }
+	if((BMPHeader.biWidth==1)&&(BMPHeader.biHeight==1)) {
+		free(bmdata);
+		bmdata=NULL;
+		return false;
+	}
   
-  if(BMPHeader.biBitCount==32){
-//    _consolePrintf("Error. not support 32bit color.");
-    free(bmdata); bmdata=NULL;
-    return(false);
-  }
+	if(BMPHeader.biBitCount==32) {
+		// _consolePrintf("Error. not support 32bit color.");
+		free(bmdata);
+		bmdata=NULL;
+		return false;
+	}
   
-  if((BMPHeader.biWidth<bmw)||(BMPHeader.biHeight<bmh)){
-//    snprintf(bmerrstr1,256,"Request /shell/%s WindowsBitmapFormat",bmpfn);
-//    snprintf(bmerrstr2,256,"%d x %dpixel 8 or 24bitcolor NoCompression.",bmw,bmh);
-//    _consolePrintf("%s\n",bmerrstr1);
-//    _consolePrintf("%s\n",bmerrstr2);
-    free(bmdata); bmdata=NULL;
-    return(false);
-  }
+	if((BMPHeader.biWidth<bmw)||(BMPHeader.biHeight<bmh)) {
+//		snprintf(bmerrstr1,256,"Request /shell/%s WindowsBitmapFormat",bmpfn);
+//		snprintf(bmerrstr2,256,"%d x %dpixel 8 or 24bitcolor NoCompression.",bmw,bmh);
+//		_consolePrintf("%s\n",bmerrstr1);
+//		_consolePrintf("%s\n",bmerrstr2);
+		free(bmdata);
+		bmdata=NULL;
+		return false;
+	}
   
-  u32 gr=0,gg=0,gb=0;
+	u32 gr=0,gg=0,gb=0;
   
 #define Gravity(c,cg) { \
-  c+=cg; \
-  cg=c&7; \
-  c=c>>3; \
-  if((c&(~0x1f))!=0) c=(c<0) ? 0x00 : 0x1f; \
+	c+=cg; \
+	cg=c&7; \
+	c=c>>3; \
+	if((c&(~0x1f))!=0) c=(c<0) ? 0x00 : 0x1f; \
 }
 
-  for(u32 y=0;y<bmh;y++){
-    u8 *pSrcBM=&BMPHeader.pBitmap[(BMPHeader.biHeight-1-y)*BMPHeader.DataWidth];
-    u16 *pDstBM=&pbm[y*bmw];
-    
-    switch(BMPHeader.biBitCount){
-      case 8: {
-        u8 *PaletteTable=BMPHeader.pPalette;
-        for(u32 x=0;x<bmw;x++){
-          u8 *pal;
-          u32 r,g,b;
-          
-          pal=&PaletteTable[*pSrcBM*4];
-          pSrcBM+=1;
-          
-          b=pal[0];
-          g=pal[1];
-          r=pal[2];
-          
-          Gravity(b,gb);
-          Gravity(g,gg);
-          Gravity(r,gr);
-          
-          pDstBM[x]=RGB15(r,g,b) | BIT(15);
-        }
-        break;
-      }
-      case 24: {
-        for(u32 x=0;x<bmw;x++){
-          u32 r,g,b;
-          
-          b=pSrcBM[0];
-          g=pSrcBM[1];
-          r=pSrcBM[2];
-          pSrcBM+=3;
-          
-          Gravity(b,gb);
-          Gravity(g,gg);
-          Gravity(r,gr);
-          
-          pDstBM[x]=RGB15(r,g,b) | BIT(15);
-        }
-        break;
-      }
-    }
-    
-  }
+	for(u32 y=0;y<bmh;y++) {
+		u8 *pSrcBM=&BMPHeader.pBitmap[(BMPHeader.biHeight-1-y)*BMPHeader.DataWidth];
+		u16 *pDstBM=&pbm[y*bmw];		
+		switch(BMPHeader.biBitCount) {
+			case 8: {
+				u8 *PaletteTable=BMPHeader.pPalette;
+				for(u32 x=0;x<bmw;x++){
+					u8 *pal;
+					u32 r,g,b;
+					
+					pal=&PaletteTable[*pSrcBM*4];
+					pSrcBM+=1;
+					
+					b=pal[0];
+					g=pal[1];
+					r=pal[2];
+					
+					Gravity(b,gb);
+					Gravity(g,gg);
+					Gravity(r,gr);
+					
+					pDstBM[x]=RGB15(r,g,b) | BIT(15);
+				}
+				break;
+			}
+			case 24: {
+				for(u32 x=0;x<bmw;x++) {
+					u32 r,g,b;
+					
+					b=pSrcBM[0];
+					g=pSrcBM[1];
+					r=pSrcBM[2];
+					pSrcBM+=3;
+					
+					Gravity(b,gb);
+					Gravity(g,gg);
+					Gravity(r,gr);
+					
+					pDstBM[x]=RGB15(r,g,b) | BIT(15);
+				}
+				break;
+			}
+		}
+	}
   
 #undef Gravity
 
-  free(bmdata); bmdata=NULL;
+	free(bmdata);
+	bmdata=NULL;
   
-  return(true);
+	return true;
 }
 
 
+DTCM_DATA ALIGN(4) static u16 *pBuf;
 
-bool LoadSkin(int mod, char *Name)
-{
-	u16	*pBuf;
+ITCM_CODE bool LoadSkin(int mod, char *Name) {
+	
 	u16	*pDstBuf1;
 	u16	*pDstBuf2;
 
-	pBuf=(u16*)malloc(256*192*2);
-	if(intLoadBM(Name, pBuf, 256, 192) == false) {
-		free(pBuf);
-		return(false);
-	}
+	pBuf = (u16*)malloc(256*192*2);
+	if(!intLoadBM(Name, pBuf, 256, 192)) { free(pBuf); return false; }
 
-	if(mod == 0) {
-		pDstBuf1 = (u16*)0x06020000;
-	}
-	if(mod == 1) {
-		pDstBuf1 = (u16*)0x06220000;
-	}
-	if(mod == 2) {
-		pDstBuf1 = (u16*)0x06000000;
-		pDstBuf2 = (u16*)0x06020000;
-//		pDstBuf1 = (u16*)0x06800000;
-//		pDstBuf2 = (u16*)0x06820000;
+	switch (mod) {
+		case 0: pDstBuf1 = (u16*)0x06020000; break;
+		case 1: pDstBuf1 = (u16*)0x06220000; break;
+		case 2:
+			pDstBuf1 = (u16*)0x06000000;
+			pDstBuf2 = (u16*)0x06020000;
+			// pDstBuf1 = (u16*)0x06800000;
+			// pDstBuf2 = (u16*)0x06820000;
+			break;
+		default: pDstBuf1 = (u16*)0x06020000; break;
 	}
 
 	for(s32 y=0;y<192;y++) {
 		for(s32 x=0;x<256;x++) {
 			pDstBuf1[x]=pBuf[x];
-			if(mod == 2)
-				pDstBuf2[x]=pBuf[x];
+			if(mod == 2)pDstBuf2[x]=pBuf[x];
 		}
 		pDstBuf1+=256;
-		if(mod == 2)
-			pDstBuf2+=256;
+		if(mod == 2)pDstBuf2+=256;
 		pBuf+=256;
 	}
 
-
-	free(pBuf);
-	return(true);
+	// free(pBuf);
+	return true;
 }
+

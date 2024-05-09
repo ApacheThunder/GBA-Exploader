@@ -39,22 +39,22 @@ extern	void	ret_menu7_R4(void);
 extern	void	ret_menu7_Gen(void);
 extern	void	ret_menu7_mse(void);
 
+// libnds messed up the original SWI bios call ASM.
+// They used r0 instead of r2. This reimplementation fixes that issue for now.
+extern void swiSwitchToGBAModeFixed();
+
 void gbaMode() {
 	vu32	vr;
 
 	REG_IME = IME_DISABLE;
 	for(vr = 0; vr < 0x1000; vr++);	// Wait ARM9
 
-	if (((*(vu32*)0x027FFCE4 >> 3) & 0x01) == 0x01) {
-		writePowerManagement(0, PM_BACKLIGHT_BOTTOM | PM_SOUND_AMP);
-	} else { 
-		writePowerManagement(0, PM_BACKLIGHT_TOP | PM_SOUND_AMP);
+	if (PersonalData->gbaScreen) {
+		writePowerManagement(PM_CONTROL_REG, PM_BACKLIGHT_BOTTOM | PM_SOUND_AMP);
+	} else {
+		writePowerManagement(PM_CONTROL_REG, PM_BACKLIGHT_TOP | PM_SOUND_AMP);
 	}
-
-	swiSwitchToGBAMode();
-//	asm("mov    r2, #0x40");
-//	asm("swi    0x1F0000");
-
+	swiSwitchToGBAModeFixed();
 	while(1);
 }
 

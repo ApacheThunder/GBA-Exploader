@@ -27,9 +27,7 @@
 
 #include <fat.h>
 #include <sys/dir.h>
-// #include <sys/iosupport.h>
 #include <nds/arm9/dldi.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,7 +51,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.58"
+#define VERSTRING "v0.59"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -74,13 +72,9 @@ u8	*rwbuf;
 #define IPC_CMD_SR_DLMS 12
 #define IPC_CMD_SR_GEN	13
 
-extern	int	carttype;
-
-
-// void Vblank() { }
-// void FIFOInit() { REG_IPC_FIFO_CR = IPC_FIFO_ENABLE | IPC_FIFO_SEND_CLEAR; }
-// void FIFOSend(u32 val) { REG_IPC_FIFO_TX = val; }
-
+extern int carttype;
+extern bool isSuperCard;
+extern bool is3in1Plus;
 
 
 u32 inp_key() {
@@ -106,6 +100,10 @@ extern void ret_menu9_R4(void);
 extern bool ret_menu_chk(void);
 extern bool ret_menu9_Gen(void);
 extern void ret_menu9_GENs(void);
+
+
+extern void setGBAmode(void);
+extern void getGBAmode(void);
 
 void turn_off(int cmd) {
 	if(cmd == 0) {			// 電源断
@@ -200,7 +198,7 @@ static void resetToSlot2() {
 ITCM_CODE void gbaMode() {
 
 	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
-		resetARM9Memory();
+		// resetARM9Memory();
 		resetToSlot2();
 	}
 
@@ -208,13 +206,11 @@ ITCM_CODE void gbaMode() {
 	videoSetModeSub(0);
 
 	vramSetPrimaryBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
-//	vramSetMainBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_ARM7, VRAM_D_ARM7);
 
 	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
 
 	gba_frame();
 
-	// FIFOSend(IPC_CMD_GBAMODE);
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	fifoSendValue32(FIFO_USER_01, 1);
 	REG_IME = 0;
@@ -231,8 +227,7 @@ void err_cnf(int n1, int n2) {
 	int	gsiz;
 
 	len = strlen(errmsg[n1]);
-	if(len < strlen(errmsg[n2]))
-		len = strlen(errmsg[n2]);
+	if(len < strlen(errmsg[n2]))len = strlen(errmsg[n2]);
 	if(len < 10)	len = 10;
 
 	x1 = (256 - len * 6) / 2 - 4;
@@ -281,8 +276,7 @@ int cnf_inp(int n1, int n2) {
 	u32	ky;
 
 	len = strlen(cnfmsg[n1]);
-	if(len < strlen(cnfmsg[n2]))
-		len = strlen(cnfmsg[n2]);
+	if(len < strlen(cnfmsg[n2]))len = strlen(cnfmsg[n2]);
 	if(len < 20)	len = 20;
 
 	x1 = (256 - len * 6) / 2 - 4;
@@ -346,8 +340,7 @@ void dsp_bar(int mod, int per) {
 		DrawBox(MainScreen, x1+1, y1+1, x2-1, y2-1, RGB15(0,0,31), 1);
 		DrawBox(MainScreen, x1+2, y1+2, x2-2, y2-2, RGB15(31,31,0), 0);
 
-		if(per != -2)
-			DrawBox(MainScreen, x1 + 28, y1 + 20, x1 + 129, y1 + 40, RGB15(31,31,31), 0);
+		if(per != -2)DrawBox(MainScreen, x1 + 28, y1 + 20, x1 + 129, y1 + 40, RGB15(31,31,31), 0);
 		ShinoPrint(MainScreen, x1 + 26, y1 + 6, (u8 *)barmsg[mod], RGB15(31,31,31), RGB15(31,31,31), 0);
 		oldper = -1;
 		return;
@@ -396,9 +389,6 @@ void RamClear() {
 	*(vu32*)0x8240000 = 0x00000000;
 }
 
-
-extern void setGBAmode(void);
-extern void getGBAmode(void);
 
 int	GBAmode;
 int	r4tf;
@@ -519,7 +509,7 @@ int rumble_cmd() {
 
 
 void _gba_dsp(int no, int mod, int x, int y) {
-	char	dsp[40];
+	char dsp[40];
 	int	sn;
 
 	sn = sortfile[no];
@@ -599,9 +589,11 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 //			DrawBox_SUB(SubScreen, 76, 116, 180, 135, 5, 1);
 //			DrawBox_SUB(SubScreen, 77, 117, 179, 134, 0, 0);
 
-			if(carttype < 4)
+			if(carttype < 4) {
 				ShinoPrint_SUB( SubScreen, 15*6, 10*12, (u8 *)t_msg[1], 0, 5, 1);
-			else	ShinoPrint_SUB( SubScreen, 15*6, 10*12, (u8 *)t_msg[21], 0, 5, 1);
+			} else {
+				ShinoPrint_SUB( SubScreen, 15*6, 10*12, (u8 *)t_msg[21], 0, 5, 1);
+			}
 
 			ShinoPrint_SUB( SubScreen, 2*6, 11*12+6, (u8 *)t_msg[2], 1, 0, 1);
 			ShinoPrint_SUB( SubScreen, 2*6, 12*12+6, (u8 *)t_msg[3], 1, 0, 1);
@@ -915,8 +907,7 @@ int gba_sel() {
 				SetRampage(16);
 				gbaMode();
 			} else {
-				if(cnf_inp(7, 8) & KEY_A)
-					SRAMdump(0);
+				if(cnf_inp(7, 8) & KEY_A)SRAMdump(0);
 			}
 		}
 
@@ -991,10 +982,10 @@ extern	void	setLang(void);
 void mainloop(void) {
 //	vu16	reg;
 
-	FILE	*r4dt;
-	__handle *handle;
-	// FILE_STRUCT *file;
-	FILE *file;
+	// FILE	*r4dt;
+	// __handle *handle;
+	// _FILE_STRUCT *file;
+	// FILE *file;
 	// PARTITION *part;
 
 	int	cmd;
@@ -1025,12 +1016,16 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 **********/
 //	OpenNorWrite();
 //	chip_reset();
+
+	setLangMsg();
+	
+	if(isDSiMode()) { err_cnf(14, 15); turn_off(0); }
+
 	CloseNorWrite();
 	SetRompage(0);
 	SetRampage(16);
 	SetShake(0x08);
 
-	setLangMsg();
 
 /********
 	ram_init(DETECT_RAM);
@@ -1039,7 +1034,7 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	inp_key();
 ********/
 	if(!fatInitDefault()) { err_cnf(0, 1); turn_off(0); }
-	
+		
 	checkFlashID();
 	
 	switch (carttype) {
@@ -1051,17 +1046,29 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 			err_cnf(2, 3);
 			turn_off(r4tf);
 			break;
-		case 1: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 ); break; // SetRampage(16); // SetShake(0x08);
-		case 2: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 ); break;		
+		case 1: 
+			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 ); break; // SetRampage(16); // SetShake(0x08);
+		case 2:
+			if (is3in1Plus) {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Plus]", 0, 0, 0 ); 
+			} else {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 ); 
+			}
+			break;
 		case 3:
 			SetRompage(0x300);
 			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"  [ EZ4 ]", 0, 0, 0 );
 			break;
 		case 4: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP256K]", 0, 0, 0 ); break;
 		case 5: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[EXP128K]", 0, 0, 0 ); break;
-		case 6: ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ M3/G6 ]", 0, 0, 0 ); break;
+		case 6: 
+			if (isSuperCard) {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ SC ]", 0, 0, 0 );
+			} else {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ M3/G6 ]", 0, 0, 0 ); 
+			}
+			break;
 	}
-
 	ShinoPrint_SUB( SubScreen, 9*6, 5*12, (u8 *)t_msg[16], 1, 0, 0 );
 	// if(!fatInitDefault()) { err_cnf(0, 1); turn_off(0); }
 
@@ -1078,16 +1085,17 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 		r4tf = 0;
 		if(io_dldi_data->ioInterface.ioType == 0x46543452) {		// R4TF
 			if((*(vu32*)0x027FFE18) == 0x00000000) {
-				r4dt = fopen("/_DS_MENU.DAT", "rb");
+				/*r4dt = fopen("/_DS_MENU.DAT", "rb");
 				if(r4dt != NULL) {
 					handle = (__handle *)r4dt->_file;
-					// file = (FILE_STRUCT *)handle->fileStruct;
+					// handle = (_handle*)r4dt->_file;
+					// file = (_FILE_STRUCT*)handle->fileStruct;
 					file = (FILE*)handle->fileStruct;
 					// part = file->partition;
 					// (*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
 					fclose(r4dt);
 					r4tf = 1;
-				}
+				}*/
 			} else {
 				r4tf = 1;
 			}
@@ -1213,7 +1221,7 @@ int main(void) {
 	ClearBG_SUB( SubScreen, 0 );				//バックを白に
 
 	swiWaitForVBlank();
-	swiWaitForVBlank();
+		
 	sysSetBusOwners(BUS_OWNER_ARM9,BUS_OWNER_ARM9);
 
 	mainloop();

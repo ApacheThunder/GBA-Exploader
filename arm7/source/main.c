@@ -98,23 +98,6 @@ void fifoCheckHandler() {
 			prepairReset();
 		}			
 	}
-	
-	
-	/*u32	fifo;
-	if(!(REG_IPC_FIFO_CR & IPC_FIFO_RECV_EMPTY)) {
-		fifo = REG_IPC_FIFO_RX;
-
-		if(fifo == IPC_CMD_GBAMODE)gbaMode();
-		if(fifo == IPC_CMD_SLOT2)prepairReset();
-		if(fifo == IPC_CMD_TURNOFF) {
-			PM_SetControl(1<<6);
-			while(1);
-		}
-		if(fifo == IPC_CMD_SR_R4TF)ret_menu7_R4();
-		if(fifo == IPC_CMD_SR_DLMS)LinkReset_ARM7();
-		if(fifo == IPC_CMD_SR_GEN)ret_menu7_Gen();
-		if(fifo == IPC_CMD_SR_MSE)ret_menu7_mse();
-	}*/
 }
 
 void VblankHandler(void) {

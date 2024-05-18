@@ -29,6 +29,7 @@
 //#include <nds/arm9/console.h> //basic print funcionality
 
 #define MAX_NOR		0x2000000 	// 32MByte 
+#define MAX_NORPLUS		0x4000000 	// 64MByte  (3 in 1 Plus)
 #define MAX_PSRAM	0x1000000 	// 16MByte 
 #define SRAM_PAGE_SIZE	0x1000	  	// SRAM Page Size
 #define MAX_SRAM	0x80000		// 4MBit/512KByte total SRAM
@@ -51,6 +52,8 @@
 
 #define PSRAM_BUF	0x8000		// 32KB
 
+#define poke(addr) do{(void)*(vu8*)addr;} while(0)
+#define poke16(addr) do{(void)*(vu16*)addr;} while(0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,27 +75,29 @@ extern int GBAmode;
 static u32 savesize;
 
 int	carttype = 0;
+bool isSuperCard = false;
+bool is3in1Plus = false;
 
 extern int save_sel(int mod, char *name);
 
 using namespace std;
 
 void SetEWINRam(u8 page) {
-	vu32	wait;
-	vu8	a;
+	vu32 wait;
+	// vu8	a;
 
 
-	a = *(vu8*)0x0A005555;
-	a = *(vu8*)0x0A002AAA;
-	a = *(vu8*)0x0A00B055;
+	poke(0x0A005555);
+	poke(0x0A002AAA);
+	poke(0x0A00B055);
 
 	*(vu8*)0x0A000000 = page;
 
 	for(wait = 0; wait < 15000; wait++);	// 1ms
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A000000;
+	poke(0x0A000000);
+	poke(0x0A000000);
+	poke(0x0A000000);
 }
 
 
@@ -186,179 +191,170 @@ bool Close_EWIN() {
 }
 
 
-
-
 void SetM3Ram(u8 page) {
 	u32	mode;
-	vu16	tmp;
+	// vu16 tmp;
 
 	mode = (u32)page << 5;
 
 // M3
 
-	tmp = *(vu16*)0x08000000;
-	tmp = *(vu16*)0x08E00002;
-	tmp = *(vu16*)0x0800000E;
-	tmp = *(vu16*)0x08801FFC;
-	tmp = *(vu16*)0x0800104A;
-	tmp = *(vu16*)0x08800612;
-	tmp = *(vu16*)0x08000000;
-	tmp = *(vu16*)0x08801B66;
-	tmp = *(vu16*)(0x08000000 + mode);
-	tmp = *(vu16*)0x0800080E;
-	tmp = *(vu16*)0x08000000;
+	poke16(0x08000000);
+	poke16(0x08E00002);
+	poke16(0x0800000E);
+	poke16(0x08801FFC);
+	poke16(0x0800104A);
+	poke16(0x08800612);
+	poke16(0x08000000);
+	poke16(0x08801B66);
+	poke16((0x08000000 + mode));
+	poke16(0x0800080E);
+	poke16(0x08000000);
 
 // G6
-	tmp = *(vu16*)0x09000000;
-	tmp = *(vu16*)0x09FFFFE0;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFF4A;
-	tmp = *(vu16*)0x09FFFF4A;
-	tmp = *(vu16*)0x09FFFF4A;
+	poke16(0x09000000);
+	poke16(0x09FFFFE0);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFF4A);
+	poke16(0x09FFFF4A);
+	poke16(0x09FFFF4A);
 
-	tmp = *(vu16*)(0x09800000 + (mode << 12));
-//	tmp = *(vu16*)0x09FFFFF0;
-	tmp = *(vu16*)0x09FFFFE8;
-
+	poke16((0x09800000 + (mode << 12)));
+//	poke16(0x09FFFFF0);
+	poke16(0x09FFFFE8);
 }
 
-bool	_set_M3(int sw) {
+bool _set_M3(int sw) {
 	vu32 wait;
-	vu16 tmp;
-	vu8	a;
+	// vu16 tmp;
+	// vu8	a;
 
 // M3
-	tmp = *(vu16*)0x08000000;
-	tmp = *(vu16*)0x08E00002;
-	tmp = *(vu16*)0x0800000E;
-	tmp = *(vu16*)0x08801FFC;
-	tmp = *(vu16*)0x0800104A;
-	tmp = *(vu16*)0x08800612;
-	tmp = *(vu16*)0x08000000;
-	tmp = *(vu16*)0x08801B66;
-	if(sw == 0)
-		tmp = *(vu16*)0x08800004;
-	if(sw == 1)
-		tmp = *(vu16*)0x0880000C;
-	if(sw == 2)
-		tmp = *(vu16*)0x08800008;
-	tmp = *(vu16*)0x0800080E;
-	tmp = *(vu16*)0x08000000;
+	poke16(0x08000000);
+	poke16(0x08E00002);
+	poke16(0x0800000E);
+	poke16(0x08801FFC);
+	poke16(0x0800104A);
+	poke16(0x08800612);
+	poke16(0x08000000);
+	poke16(0x08801B66);
+	if(sw == 0)poke16(0x08800004);
+	if(sw == 1)poke16(0x0880000C);
+	if(sw == 2)poke16(0x08800008);
+	poke16(0x0800080E);
+	poke16(0x08000000);
 
 	if(sw == 2) {
-		tmp = *(vu16*)0x080001E4;
-		tmp = *(vu16*)0x080001E4;
-		tmp = *(vu16*)0x08000188;
-		tmp = *(vu16*)0x08000188;
+		poke16(0x080001E4);
+		poke16(0x080001E4);
+		poke16(0x08000188);
+		poke16(0x08000188);
 	}
 
 // G6
-	tmp = *(vu16*)0x09000000;
-	tmp = *(vu16*)0x09FFFFE0;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFEC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFFFC;
-	tmp = *(vu16*)0x09FFFF4A;
-	tmp = *(vu16*)0x09FFFF4A;
-	tmp = *(vu16*)0x09FFFF4A;
+	poke16(0x09000000);
+	poke16(0x09FFFFE0);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFEC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFFFC);
+	poke16(0x09FFFF4A);
+	poke16(0x09FFFF4A);
+	poke16(0x09FFFF4A);
 
-	if(sw == 0)
-		tmp = *(vu16*)0x09200004;
-	if(sw == 1)
-		tmp = *(vu16*)0x0920000C;
-	if(sw == 2)
-		tmp = *(vu16*)0x09200008;
-	tmp = *(vu16*)0x09FFFFF0;
-	tmp = *(vu16*)0x09FFFFE8;
+	if(sw == 0)poke16(0x09200004);
+	if(sw == 1)poke16(0x0920000C);
+	if(sw == 2)poke16(0x09200008);
+	poke16(0x09FFFFF0);
+	poke16(0x09FFFFE8);
 
 // GBA Pack
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000001;
-	tmp = *(vu16*)0x08000000;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000001);
+	poke16(0x08000000); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000006;
-	tmp = *(vu16*)0x08000800;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000006);
+	poke16(0x08000800); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000008;
-	tmp = *(vu16*)0x09000040;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000008);
+	poke16(0x09000040); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000008;
-	tmp = *(vu16*)0x09000060;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000008);
+	poke16(0x09000060); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000006;
-	tmp = *(vu16*)0x08000800;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000006);
+	poke16(0x08000800); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000007;
-	tmp = *(vu16*)0x08000000;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000007);
+	poke16(0x08000000); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000003;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000003);
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000005;
-	tmp = *(vu16*)0x08000000;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000005);
+	poke16(0x08000000); // tmp
 
 	for(wait = 0; wait < 15000; wait++);	// 1ms
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A00000A;
-	tmp = *(vu16*)0x08000000;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A00000A);
+	poke16(0x08000000); // tmp
 
-	a = *(vu8*)0x0A000000;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A009999;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A006666;
-	a = *(vu8*)0x0A000003;
+	poke(0x0A000000);
+	poke(0x0A009999);
+	poke(0x0A009999);
+	poke(0x0A006666);
+	poke(0x0A006666);
+	poke(0x0A000003);
 
 	return true;
 }
@@ -390,49 +386,41 @@ int cehck_M3() {
 }
 
 
-
-void	_RamPG() {
-	if(carttype == 3) {
-		SetRampage(USE_SRAM_PG_EZ4);
-		return;
+void _RamPG() {
+	switch (carttype) {
+		case 3:
+			SetRampage(USE_SRAM_PG_EZ4);
+			return;
+		case 4:
+			SetEWINRam(USE_SRAM_PG_EWN);
+			return;
+		case 5:
+			SetEWINRam(USE_SRAM_PG_EWN128);
+			return;
+		case 6:
+			SetM3Ram(USE_SRAM_PG_M3);
+			return;
 	}
-	if(carttype == 4) {
-		SetEWINRam(USE_SRAM_PG_EWN);
-		return;
-	}
-	if(carttype == 5) {
-		SetEWINRam(USE_SRAM_PG_EWN128);
-		return;
-	}
-	if(carttype == 6) {
-		SetM3Ram(USE_SRAM_PG_M3);
-		return;
-	}
-
 	SetRampage(USE_SRAM_PG);
 	return;
-
 }
 
 void _RamSave(int bnk) {
-	if(carttype == 3) {
-		SetRampage(USE_SRAM_PSR_EZ4 + bnk * 16);
-		return;
+	switch (carttype) {
+		case 3:
+			SetRampage(USE_SRAM_PSR_EZ4 + bnk * 16);
+			return;
+		case 6:
+			SetM3Ram(USE_SRAM_PSR_M3 + bnk);
+			return;
 	}
-	if(carttype == 6) {
-		SetM3Ram(USE_SRAM_PSR_M3 + bnk);
-		return;
-	}
+	
 	if(carttype >= 4) {
 		SetEWINRam(USE_SRAM_PSR_EWN + bnk);
 		return;
 	}
 
-	if(GBAmode == 0) {
-		SetRampage(USE_SRAM_PSR + bnk * 16);
-	} else {
-		SetRampage(USE_SRAM_NOR + bnk * 16);
-	}
+	if(GBAmode == 0) { SetRampage(USE_SRAM_PSR + bnk * 16); } else { SetRampage(USE_SRAM_NOR + bnk * 16); }
 	return;
 }
 
@@ -452,29 +440,29 @@ int checkFlashID() {
 	carttype = id;
 	
 	switch (id) {
-		case 0x227E2218: carttype = 1;
-		case 0x227E2202: carttype = 2; 
-		case 0x227E2220: carttype = 3; // EZ4
-	}
-	
-	if(carttype == 0 && cehck_M3())carttype = 6;
-	
-	if(carttype == 0) {
-		ewin = cehck_EWIN();
-		if(ewin > 0) { 
-			carttype = 3 + ewin;
-		} else {
-			#ifdef _DEBUG
-			FILE *testFile = fopen("/gbacardID.bin", "wb");
-			if (testFile) {
-				fwrite((void*)id, 4, 1, testFile);
-				fclose(testFile);
+		case 0:
+			if (cehck_M3()) { 
+				carttype = 6; // M3/G6
+				return carttype; 
 			}
-			#endif
-		}
+			ewin = cehck_EWIN();
+			if(ewin > 0)carttype = 3 + ewin; // EWIN
+			return carttype;
+		case 0x227E2218: carttype = 1; return carttype; // 3in1
+		case 0x227E2202: carttype = 2; return carttype; // New3in1
+		case 0x227E2222:
+			is3in1Plus = true;
+			isSuperCard = false;
+			carttype = 2; // 3in1 Plus
+			return carttype;
+		case 0x227E2220: carttype = 3; return carttype; // EZ4
+		case 0x227E0000: // SuperCard
+			carttype = 6; 
+			is3in1Plus = false;
+			isSuperCard = true;
+			return carttype; // SuperCard
+		default: return 0; // Unsupported/Unimplemented Cart ID
 	}
-
-	return(carttype);
 }
 
 
@@ -508,8 +496,7 @@ int checkSRAM(char *name) {
 			break;
 	}
 
-	if(carttype < 4)
-		OpenNorWrite();
+	if(carttype < 4)OpenNorWrite();
 
 	if(Rudolph[i] != 0) {
 		strcpy((char *)ctrl.sign, Rudolph);
@@ -534,13 +521,11 @@ int checkSRAM(char *name) {
 		savesize = 0x10000;
 		ctrl.save_siz[GBAmode] = savesize;
 		ctrl_set();
-		if(carttype < 4)
-			CloseNorWrite();
+		if(carttype < 4)CloseNorWrite();
 		return false;
 	}
 
-	if(carttype < 4)
-		CloseNorWrite();
+	if(carttype < 4)CloseNorWrite();
 	return true;
 }
 
@@ -840,12 +825,11 @@ int writeFileToNor(int sel) {
 	int	cmd;
 	bool	gba;
 
-	fsz = MAX_NOR;
+	if (is3in1Plus) { fsz = MAX_NORPLUS; } else { fsz = MAX_NOR; }
+	
 	exp = 0x00000000;
 
-	if(fs[sel].filesize > fsz) {
-		return(1);
-	}
+	if(fs[sel].filesize > fsz)return 1;
 
 	if(checkSRAM(savName) == false) {
 		err_cnf(4, 5);
@@ -876,13 +860,13 @@ int writeFileToNor(int sel) {
 
 	for(siz = 0; siz < fs[sel].filesize; siz += 0x40000) {
 		dsp_bar(0, siz * 100 / fs[sel].filesize);
-	        Block_Erase(siz);
+		Block_Erase(siz);
 	}
 	dsp_bar(0, 100);
 
 	chip_reset();
 	CloseNorWrite();
-
+	
 	SetRampage(USE_SRAM_NOR);
 	OpenNorWrite();
 	SetSerialMode();
@@ -891,15 +875,14 @@ int writeFileToNor(int sel) {
 	dsp_bar(-1, 100);
 
 	savesize = gba_check(gbaFile, fs[sel].filesize, rwbuf, PSRAM_BUF*32);
-
 	dsp_bar(1, -1);
+	
 	for(siz = 0; siz < fs[sel].filesize; siz += PSRAM_BUF*32) {
 		fread(rwbuf, 1, PSRAM_BUF*32, gbaFile);
 
 //		dsp_bar(1, siz * 100 / fs[sel].filesize);
 
-		if(siz == 0 && gba)
-			header_rep(rwbuf);
+		if(siz == 0 && gba)header_rep(rwbuf);
 
 		wsz = fs[sel].filesize - siz;
 		if(wsz > PSRAM_BUF*32)	wsz = PSRAM_BUF*32;
@@ -912,14 +895,17 @@ int writeFileToNor(int sel) {
 			exp += PSRAM_BUF;
 		}
 	}
+	
 	dsp_bar(1, 100);
 	fclose(gbaFile);
 	CloseNorWrite();
 
 //	getSaveFilename(sel, savName);
-	if(cmd >= 0)
+	if(cmd >= 0) {
 		writeSramFromFile(savName);
-	else	blankSRAM(savName);
+	} else	{
+		blankSRAM(savName);
+	}
 
 	dsp_bar(-1, 100);
 //	SetRampage(USE_SRAM_NOR);
@@ -936,16 +922,12 @@ int writeFileToRam(int sel) {
 	int	cmd;
 	bool	gba;
 
-	if(carttype >= 3)
-		fsz = MAX_NOR;
-	else	fsz = MAX_PSRAM;
+	if(carttype >= 3) {	fsz = MAX_NOR; } else { fsz = MAX_PSRAM; }
 
-	if(carttype >= 4)
-		exp = 0x08000000;
-	else	exp = 0x08060000;
+	if(carttype >= 4) {	exp = 0x08000000; } else { exp = 0x08060000; }
 	exps = exp;
 
-	if(fs[sel].filesize > fsz)return(1);
+	if(fs[sel].filesize > fsz)return 1;
 
 
 //	if(checkSRAM(savName) == false) {
@@ -1009,7 +991,7 @@ int writeFileToRam(int sel) {
 	if(carttype < 4)CloseNorWrite();
 
 	_RamSave(0);
-	if(carttype >= 4) {
+	if(carttype >= 4 && !isSuperCard) {
 		if(carttype == 6) { Close_M3(); } else { Close_EWIN(); }
 	}
 	if(carttype == 3)SetRompage(0x300);

@@ -167,16 +167,14 @@ u32 _unistrnlen( const u16 * unistr, u32 maxlen )
 	return len;
 }
 
-int _unistrncmp( const u16 * src, const u16 * dest, u32 maxlen )
-{
-	if( NULL == src || NULL == dest )
-	{
-		if( src == dest ) return NULL;
+int _unistrncmp( const u16 * src, const u16 * dest, u32 maxlen ) {
+	if( NULL == src || NULL == dest ) {
+		// if( src == dest ) return NULL;
+		if( src == dest ) return -1;
 		return (NULL == src ) ? -1 : 1;
 	}
 
-	while( *src == *dest && maxlen && *src != 0x0000 && *dest != 0x0000 )
-	{
+	while( *src == *dest && maxlen && *src != 0x0000 && *dest != 0x0000 ) {
 		++src;
 		++dest;
 		--maxlen;

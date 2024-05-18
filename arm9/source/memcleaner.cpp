@@ -25,21 +25,10 @@ THE SOFTWARE.
 ---------------------------------------------------------------------------------*/
 
 #include <nds.h>
-#include <nds/registers_alt.h>
 
 #include "memcleaner.h"
 
-/*
-static inline void dmaFillWords(const void* src, void* dest, uint32 size) {
-	DMA_SRC(3)  = (uint32)src;
-	DMA_DEST(3) = (uint32)dest;
-	DMA_CR(3)   = DMA_COPY_WORDS | DMA_SRC_FIX | (size>>2);
-	while(DMA_CR(3) & DMA_BUSY);
-}
-*/
-
-void resetARM9Memory()
-{
+void resetARM9Memory() {
     // DMA
     for (u8 i=0; i<4; i++) {
         DMA_CR(i) = 0;
@@ -75,7 +64,7 @@ void resetARM9Memory()
     VRAM_H_CR = 0;
     VRAM_I_CR = 0;
     VRAM_CR   = 0x00000000;
-    POWER_CR  = 0x820F; // turn on all engines
+    REG_POWERCNT  = 0x820F; // turn on all engines
 
     // Interrupt
     REG_IME = 0;

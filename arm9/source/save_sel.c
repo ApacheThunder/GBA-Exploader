@@ -178,7 +178,3 @@ int save_sel(int mod, char *name) {
 	return(cmd);
 }
 
-
-
-
-

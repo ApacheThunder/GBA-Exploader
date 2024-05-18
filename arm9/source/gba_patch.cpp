@@ -83,8 +83,7 @@ static	int _type_chk(u32 *pbuf, u32 c, u32 ofs) {
 	return c;
 }
 
-static	int _eeprom_chk(u32 *pbuf, u32 c, u32 ofs, u32 size)
-{
+static	int _eeprom_chk(u32 *pbuf, u32 c, u32 ofs, u32 size) {
 	if(pbuf[c] == 0xB0A2B570 && 
 		pbuf[c + 1] == 0x04001C0D &&
 			pbuf[c + 2] == 0x48030C03 &&
@@ -170,8 +169,7 @@ static	int _eeprom_chk(u32 *pbuf, u32 c, u32 ofs, u32 size)
 }
 
 
-static	int _fmini_chk(u32 *pbuf, u32 c, u32 ofs)
-{
+static	int _fmini_chk(u32 *pbuf, u32 c, u32 ofs) {
 	if(PatchCnt == 1 &&
 		pbuf[c] ==0xE92D0003 && 
 			pbuf[c + 1] == 0xEF110000 && 
@@ -357,8 +355,7 @@ static	int _fmini_chk(u32 *pbuf, u32 c, u32 ofs)
 }
 
 
-static	int _flash512_chk(u32 *pbuf, u32 c, u32 ofs)
-{
+static	int _flash512_chk(u32 *pbuf, u32 c, u32 ofs) {
 
 	if(pbuf[c] == 0xB0A0B5F0 &&
 		pbuf[c + 1] == 0x1C161C0D && 
@@ -420,8 +417,7 @@ static	int _flash512_chk(u32 *pbuf, u32 c, u32 ofs)
 	return c;
 }
 
-static	int _flash1M_chk(u32 *pbuf, u32 c, u32 ofs)
-{
+static	int _flash1M_chk(u32 *pbuf, u32 c, u32 ofs) {
 	if(pbuf[c] == 0x0E000600 &&
 		pbuf[c + 1] == 0x21AA4B05 && 
 			pbuf[c + 2] == 0x4A057019) {
@@ -577,8 +573,7 @@ static	int _flash1M_chk(u32 *pbuf, u32 c, u32 ofs)
 }
 
 
-static	int _flash_chk(u32 *pbuf, u32 c, u32 ofs)
-{
+static	int _flash_chk(u32 *pbuf, u32 c, u32 ofs) {
 
 // FLASH_V120 ******** 0020, 0067
 
@@ -723,8 +718,7 @@ extern "C" {
 	void dsp_bar(int mod, int per);
 }
 
-static bool _get_sign(char *name, char *sign)
-{
+static bool _get_sign(char *name, char *sign) {
 	int	ln;
 
 	sprintf(sign, "%s/%s", ini.sign_dir, name);
@@ -741,8 +735,7 @@ static bool _get_sign(char *name, char *sign)
 }
 
 
-void gba_check_int(char *name)
-{
+void gba_check_int(char *name) {
 	FILE	*sign;
 	u8	buf[512];
 	int	i;
@@ -780,16 +773,14 @@ void gba_check_int(char *name)
 	}
 	SaveType = *((u32*)(buf + 8));
 	SaveSize = *((u32*)(buf + 12));
-	for(i = 0; i < 16; i++)
-		SaveVer[i] = buf[i + 16];
+	for(i = 0; i < 16; i++)SaveVer[i] = buf[i + 16];
 	for(i = 0; i < PatchCnt; i++) {
 		PatchType[i] = *((u32*)(buf + 32 + i * 8));
 		PatchAddr[i] = *((u32*)(buf + 36 + i * 8));
 	}
 }
 
-u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs)
-{
+u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs) {
 	u32	i, ii;
 	u32	*pbuf;
 	u32	oldtype;
@@ -797,18 +788,19 @@ u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs)
 
 //	if(SaveType != 0)
 //		return(SaveSize);
-	if(PatchVer == PATCH_VER)
-		return(SaveSize);
+	if(PatchVer == PATCH_VER)return(SaveSize);
 
 	pbuf = (u32*)buf;
-	if(PatchCnt > 1)
+	if(PatchCnt > 1) {
 		oldtype = PatchType[PatchCnt-1]/0x10;
-	else	oldtype = 0;
+	} else {
+		oldtype = 0;
+	}
 
 	i = ofs;
 	for(ii = 0; ii < bufsize / 4; ii++) {
 		ii = _type_chk(pbuf, ii, i);
-		if(SaveType == 8)	break;
+		if(SaveType == 8)break;
 
 		if(oldtype == 0 || oldtype == 2) {
 			ii = _eeprom_chk(pbuf, ii, i, size);
@@ -844,21 +836,18 @@ u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs)
 }
 
 
-static	void _ReadPSram(uint32 address, u8* data , uint32 size )
-{
+static	void _ReadPSram(uint32 address, u8* data , uint32 size ) {
 	u32	i;
 	u16* pData = (u16*)data;
 	u16* sData = (u16*)address;
 
-	for(i = 0; i < size / 2; i++)
-		pData[i] = sData[i];
+	for(i = 0; i < size / 2; i++)pData[i] = sData[i];
 }
 
-void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size)
-{
+void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
 	u32	i, ii;
 	u32	*pbuf;
-	int	cnt;
+	// int	cnt;
 
 
 	if(SaveType == 0) {		// UNKNOWN Famicom Mini
@@ -875,8 +864,7 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size)
 		PatchCnt++;
 	}
 
-	if(SaveType < 2 || PatchCnt <= 1 || SaveType == PatchType[1]/0x10)
-		return;
+	if(SaveType < 2 || PatchCnt <= 1 || SaveType == PatchType[1]/0x10)return;
 
 	pbuf = (u32*)buf;
 	PatchCnt = 1;
@@ -884,7 +872,7 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size)
 		_ReadPSram(exp, buf, bufsize+0x400);
 //		dmaCopy((void *)exp, buf, bufsize);
 //		dmaCopyWords(3, buf, (void *)exp, 0x100000);
-		cnt = PatchCnt;
+		// cnt = PatchCnt;
 		for(ii = 0; ii < bufsize / 4; ii++) {
 			if(SaveType == 2) {
 				ii = _eeprom_chk(pbuf, ii, i, size);
@@ -908,12 +896,11 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size)
 }
 
 
-u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize)
-{
+u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
 	u32	i, ii;
 	u32	*pbuf;
 	u32	oldtype;
-	int	cnt;
+	// int	cnt;
 
 
 //	if(SaveType != 0)
@@ -1006,7 +993,7 @@ u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize)
 
 		dsp_bar(3, i * 100 / size);
 
-		cnt = PatchCnt;
+		// cnt = PatchCnt;
 		for(ii = 0; ii < bufsize / 4; ii++) {
 			if(SaveType == 2) {
 				ii = _eeprom_chk(pbuf, ii, i, size);
@@ -1374,9 +1361,7 @@ static const u8 patch_flash1M_6E2[] = {
 };
 
 static u8 patch_flash1M_6M[] = {
-
 	0x00, 0xB5, 0x00, 0x20, 0x02, 0xBC, 0x08, 0x47, 0x04, 0x30, 0x08, 0x22, 0x12, 0x06, 0x13, 0x88, 0x8E, 0x21, 0x09, 0x05, 0x4B, 0x88, 0xD3, 0x89, 0x12, 0x49, 0x8B, 0x8B, 0x12, 0x49, 0x4B, 0x89, 0x12, 0x49, 0x4B, 0x8A, 0x13, 0x88, 0x12, 0x49, 0xCB, 0x88, 0x41, 0x01, 0x89, 0x18, 0x0B, 0x88, 0x10, 0x49, 0xCB, 0x89, 0x13, 0x88, 0x09, 0x22, 0x12, 0x06, 0x13, 0x88, 0x0E, 0x49, 0x0B, 0x88, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x0A, 0x1C, 0x96, 0x3A, 0x13, 0x88, 0x13, 0x88, 0x13, 0x88, 0x98, 0x22, 0x12, 0x05, 0x40, 0x04, 0x80, 0x18, 0x03, 0x88, 0x0B, 0x89, 0x70, 0x47, 0xE0, 0x1F, 0x80, 0x08, 0x40, 0x10, 0x00, 0x08, 0x00, 0x06, 0x80, 0x08, 0x60, 0x1B, 0x80, 0x08, 0x00, 0x08, 0x00, 0x08, 0xE0, 0xFF, 0xFF, 0x09
-
 };
 
 static const u8 patch_flash1M_7[] = {
@@ -1459,9 +1444,7 @@ static const u8 patch_flash1M_8E[] = {
 };
 
 static u8 patch_flash1M_8M[] = {
-
 	0x38, 0xB5, 0x04, 0x06, 0x20, 0x0F, 0x24, 0x01, 0x24, 0x0C, 0x64, 0x18, 0x15, 0x1C, 0x04, 0x30, 0x08, 0x22, 0x12, 0x06, 0x13, 0x88, 0x8E, 0x21, 0x09, 0x05, 0x4B, 0x88, 0xD3, 0x89, 0x16, 0x49, 0x8B, 0x8B, 0x16, 0x49, 0x4B, 0x89, 0x16, 0x49, 0x4B, 0x8A, 0x13, 0x88, 0x15, 0x49, 0xCB, 0x88, 0x41, 0x01, 0x89, 0x18, 0x0B, 0x88, 0x14, 0x49, 0xCB, 0x89, 0x13, 0x88, 0x09, 0x22, 0x12, 0x06, 0x13, 0x88, 0x12, 0x49, 0x0B, 0x88, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x0A, 0x1C, 0x96, 0x3A, 0x13, 0x88, 0x13, 0x88, 0x13, 0x88, 0x98, 0x22, 0x12, 0x05, 0x40, 0x04, 0x80, 0x18, 0x03, 0x88, 0x0B, 0x89, 0x0E, 0x21, 0x09, 0x06, 0x09, 0x19, 0x0D, 0x70, 0x00, 0x20, 0x38, 0xBC, 0x02, 0xBC, 0x08, 0x47, 0xE0, 0x1F, 0x80, 0x08, 0x40, 0x10, 0x00, 0x08, 0x00, 0x06, 0x80, 0x08, 0x60, 0x1B, 0x80, 0x08, 0x00, 0x08, 0x00, 0x08, 0xE0, 0xFF, 0xFF, 0x09
-
 };
 
 static u8 patch_flash1M_9[] = {
@@ -1548,9 +1531,7 @@ static const u8 patch_flash1M_9E[] = {
 };
 
 static u8 patch_flash1M_9M[] = {
-
 	0x3C, 0xB5, 0x04, 0x06, 0x20, 0x0F, 0x24, 0x01, 0x24, 0x0C, 0x0D, 0x1C, 0x04, 0x30, 0x08, 0x22, 0x12, 0x06, 0x13, 0x88, 0x8E, 0x21, 0x09, 0x05, 0x4B, 0x88, 0xD3, 0x89, 0x1A, 0x49, 0x8B, 0x8B, 0x1A, 0x49, 0x4B, 0x89, 0x1A, 0x49, 0x4B, 0x8A, 0x13, 0x88, 0x1A, 0x49, 0xCB, 0x88, 0x41, 0x01, 0x89, 0x18, 0x0B, 0x88, 0x18, 0x49, 0xCB, 0x89, 0x13, 0x88, 0x09, 0x22, 0x12, 0x06, 0x13, 0x88, 0x16, 0x49, 0x0B, 0x88, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x89, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x8B, 0x0A, 0x1C, 0x96, 0x3A, 0x13, 0x88, 0x13, 0x88, 0x13, 0x88, 0x98, 0x22, 0x12, 0x05, 0x40, 0x04, 0x80, 0x18, 0x03, 0x88, 0x0B, 0x89, 0x0E, 0x21, 0x09, 0x06, 0x09, 0x19, 0x01, 0x23, 0x1B, 0x03, 0x28, 0x78, 0x08, 0x70, 0x01, 0x3B, 0x01, 0x35, 0x01, 0x31, 0x00, 0x2B, 0xF8, 0xD1, 0x00, 0x20, 0x3C, 0xBC, 0x02, 0xBC, 0x08, 0x47, 0x00, 0x00, 0xE0, 0x1F, 0x80, 0x08, 0x40, 0x10, 0x00, 0x08, 0x00, 0x06, 0x80, 0x08, 0x60, 0x1B, 0x80, 0x08, 0x00, 0x08, 0x00, 0x08, 0xE0, 0xFF, 0xFF, 0x09
-
 };
 
 
@@ -1691,8 +1672,7 @@ static const u8 patch_flash_6[] = {
 };
 
 
-static void _patch_ram(u8 *buf, u32 ofs, const u8 *data, u32 size)
-{
+static void _patch_ram(u8 *buf, u32 ofs, const u8 *data, u32 size) {
 	u16	*pbuf;
 	u16	*pdata;
 	u32	i;
@@ -1700,18 +1680,13 @@ static void _patch_ram(u8 *buf, u32 ofs, const u8 *data, u32 size)
 	pbuf = (u16*)buf;
 	pdata = (u16*)data;
 
-	for(i = 0; i < size/2; i++, ofs++) {
-		pbuf[ofs] = pdata[i];
-	}
+	for(i = 0; i < size/2; i++, ofs++)pbuf[ofs] = pdata[i];
 }
 
-static void _patch(u8 *buf, u32 ofs, const u8 *data, u32 size, u32 bend)
-{
+static void _patch(u8 *buf, u32 ofs, const u8 *data, u32 size, u32 bend) {
 	u32	i;
 
-	for(i = 0; i < size && ofs < bend; i++, ofs++) {
-		buf[ofs] = data[i];
-	}
+	for(i = 0; i < size && ofs < bend; i++, ofs++)buf[ofs] = data[i];
 
 	if(i < size) {
 		RemainPtr = (u8*)data + i;
@@ -1720,12 +1695,10 @@ static void _patch(u8 *buf, u32 ofs, const u8 *data, u32 size, u32 bend)
 		RemainPtr = 0;
 		RemainByte = 0;
 	}
-
 }
 
 
-static void _patch_write(char *name)
-{
+static void _patch_write(char *name) {
 	FILE	*sign;
 	u8	buf[512];
 	int	i;
@@ -1739,8 +1712,7 @@ static void _patch_write(char *name)
 		return;
 	}
 
-	if(PatchVer == PATCH_VER)
-		return;
+	if(PatchVer == PATCH_VER)return;
 
 	PatchVer = PATCH_VER;
 	if(SaveType == 0) {
@@ -1750,15 +1722,14 @@ static void _patch_write(char *name)
 	}
 
 	sign = fopen((char *)buf, "wb");
-	if(sign == NULL)	return;
+	if(sign == NULL)return;
 
 	memset(buf, 0x00, 256);
 	*((u32*)(buf + 0)) = PatchVer;
 	*((u32*)(buf + 4)) = PatchCnt;
 	*((u32*)(buf + 8)) = SaveType;
 	*((u32*)(buf + 12)) = SaveSize;
-	for(i = 0; i < 16; i++)
-		buf[i + 16] = SaveVer[i];
+	for(i = 0; i < 16; i++)buf[i + 16] = SaveVer[i];
 	for(i = 0; i < PatchCnt; i++) {
 		*((u32*)(buf + 32 + i * 8)) = PatchType[i];
 		*((u32*)(buf + 36 + i * 8)) = PatchAddr[i];
@@ -1769,8 +1740,7 @@ static void _patch_write(char *name)
 
 }
 
-void gba_patch_Ram(u32 exp, char *name, int cart)
-{
+void gba_patch_Ram(u32 exp, char *name, int cart) {
 	u8	*buf;
 	int	i, j;
 	u32	ofs = 0;
@@ -1780,11 +1750,10 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 
 	_patch_write(name);
 
-	if(SaveType < 2)	return;
+	if(SaveType < 2)return;
 
 
-	if(SaveType == 5 && cart == 6)
-		return;
+	if(SaveType == 5 && cart == 6)return;
 
 //	buf = (u8*)exp;
 
@@ -1794,14 +1763,10 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 		buf = (u8*)(exp + PatchAddr[i]);
 		switch(SaveType) {
 			case 2:			// EEPROM
-				if(PatchType[i] == 0x21)
-					_patch_ram(buf, ofs, patch_eeprom_1, sizeof(patch_eeprom_1));
-				if(PatchType[i] == 0x22)
-					_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
-				if(PatchType[i] == 0x23)
-					_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
-				if(PatchType[i] == 0x24)
-					_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
+				if(PatchType[i] == 0x21)_patch_ram(buf, ofs, patch_eeprom_1, sizeof(patch_eeprom_1));
+				if(PatchType[i] == 0x22)_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
+				if(PatchType[i] == 0x23)_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
+				if(PatchType[i] == 0x24)_patch_ram(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2));
 				if(PatchType[i] == 0x25) {
 					paddr = 0x08000001 + PatchAddr[i+2];
 					patch_eeprom111_1[4] = (u8)(paddr & 0xFF);
@@ -1811,86 +1776,74 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 //					*((u32*)(patch_eeprom111_1 + 4)) = 0x08000001 + PatchAddr[i+2];
 					_patch_ram(buf, ofs, patch_eeprom111_1, sizeof(patch_eeprom111_1));
 				}
-				if(PatchType[i] == 0x26)
-					_patch_ram(buf, ofs, patch_eeprom111_2, sizeof(patch_eeprom111_2));
-				if(PatchType[i] == 0x27)
-					_patch_ram(buf, ofs, patch_eeprom111_3, sizeof(patch_eeprom111_3));
+				if(PatchType[i] == 0x26)_patch_ram(buf, ofs, patch_eeprom111_2, sizeof(patch_eeprom111_2));
+				if(PatchType[i] == 0x27)_patch_ram(buf, ofs, patch_eeprom111_3, sizeof(patch_eeprom111_3));
 				break;
 			case 3:			// FLASH512_V
-				if(PatchType[i] == 0x31)
-					_patch_ram(buf, ofs, patch_flash_5, sizeof(patch_flash_5));
-				if(PatchType[i] == 0x32)
-					_patch_ram(buf, ofs, patch_flash_3, sizeof(patch_flash_3));
-				if(PatchType[i] == 0x33)
-					_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
-				if(PatchType[i] == 0x34)
-					_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
-				if(PatchType[i] == 0x35)
-					_patch_ram(buf, ofs, patch_flash_6, sizeof(patch_flash_6));
+				if(PatchType[i] == 0x31)_patch_ram(buf, ofs, patch_flash_5, sizeof(patch_flash_5));
+				if(PatchType[i] == 0x32)_patch_ram(buf, ofs, patch_flash_3, sizeof(patch_flash_3));
+				if(PatchType[i] == 0x33)_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+				if(PatchType[i] == 0x34)_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+				if(PatchType[i] == 0x35)_patch_ram(buf, ofs, patch_flash_6, sizeof(patch_flash_6));
 				break;
 			case 4:			// FLASH_V
-				if(PatchType[i] == 0x41)
-					_patch_ram(buf, ofs, patch_flash120_1, sizeof(patch_flash120_1));
-				if(PatchType[i] == 0x42)
-					_patch_ram(buf, ofs, patch_flash_1, sizeof(patch_flash_1));
-				if(PatchType[i] == 0x43)
-					_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+				if(PatchType[i] == 0x41)_patch_ram(buf, ofs, patch_flash120_1, sizeof(patch_flash120_1));
+				if(PatchType[i] == 0x42)_patch_ram(buf, ofs, patch_flash_1, sizeof(patch_flash_1));
+				if(PatchType[i] == 0x43)_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
 				if(PatchType[i] == 0x44) {
-					if(PatchType[1] == 0x41)
+					if(PatchType[1] == 0x41) {
 						_patch_ram(buf, ofs, patch_flash120_2, sizeof(patch_flash120_2));
-					else	_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+					} else {
+						_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+					}
 				}
 				if(PatchType[i] == 0x45) {
-					if(PatchType[1] == 0x41)
+					if(PatchType[1] == 0x41) {
 						_patch_ram(buf, ofs, patch_flash120_3, sizeof(patch_flash120_3));
-					else	_patch_ram(buf, ofs, patch_flash_4, sizeof(patch_flash_4));
+					} else { 
+						_patch_ram(buf, ofs, patch_flash_4, sizeof(patch_flash_4));
+					}
 				}
-				if(PatchType[i] == 0x46)
-					_patch_ram(buf, ofs, patch_flash_3, sizeof(patch_flash_3));
-				if(PatchType[i] == 0x47)
-					_patch_ram(buf, ofs, patch_flash_5, sizeof(patch_flash_5));
-				if(PatchType[i] == 0x48)
-					_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
-				if(PatchType[i] == 0x49)
-					_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
-				if(PatchType[i] == 0x4A)
-					_patch_ram(buf, ofs, patch_flash_6, sizeof(patch_flash_6));
+				if(PatchType[i] == 0x46)_patch_ram(buf, ofs, patch_flash_3, sizeof(patch_flash_3));
+				if(PatchType[i] == 0x47)_patch_ram(buf, ofs, patch_flash_5, sizeof(patch_flash_5));
+				if(PatchType[i] == 0x48)_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+				if(PatchType[i] == 0x49)_patch_ram(buf, ofs, patch_flash_2, sizeof(patch_flash_2));
+				if(PatchType[i] == 0x4A)_patch_ram(buf, ofs, patch_flash_6, sizeof(patch_flash_6));
 				break;
 			case 5:			// FLASH1M_V
 				if(PatchType[i] == 0x51) {
 					for(j = i + 1; j < PatchCnt; j++) {
 //						if(PatchType[j] == 0x56)
 //							savel = PatchAddr[j];
-						if(PatchType[j] == 0x58)
-							break;
+						if(PatchType[j] == 0x58)break;
 					}
-					if(j < PatchCnt)	V102 = false;
-					if((cart == 4 || cart == 5) && V102) {				// EWIN V102
+					if (j < PatchCnt)V102 = false;
+					if ((cart == 4 || cart == 5) && V102) {				// EWIN V102
 						_patch_ram(buf, ofs, patch_flash1M_1E, sizeof(patch_flash1M_1E));
 						break;
 					}
 
 //					*((u16*)(patch_flash1M_1 + 4)) = (u16)(0xF800 + ((savel + 2 - PatchAddr[i]) / 2));
-					if(V102)
+					if(V102) {
 						patch_flash1M_1[4] = 0x55;	// V102
-					else	patch_flash1M_1[4] = 0x5B;	// V103
+					} else {
+						patch_flash1M_1[4] = 0x5B;	// V103
+					}
 					_patch_ram(buf, ofs, patch_flash1M_1, sizeof(patch_flash1M_1));
 				}
-				if(PatchType[i] == 0x52)	// V103
-					_patch_ram(buf, ofs, patch_flash1M_2, sizeof(patch_flash1M_2));
-				if(PatchType[i] == 0x53)	// V103
-					_patch_ram(buf, ofs, patch_flash1M_3, sizeof(patch_flash1M_3));
-				if(PatchType[i] == 0x5A)	// V102
-					_patch_ram(buf, ofs, patch_flash1M_3E, sizeof(patch_flash1M_3E));
+				if(PatchType[i] == 0x52)_patch_ram(buf, ofs, patch_flash1M_2, sizeof(patch_flash1M_2)); // V103
+				if(PatchType[i] == 0x53)_patch_ram(buf, ofs, patch_flash1M_3, sizeof(patch_flash1M_3)); // V103
+				if(PatchType[i] == 0x5A)_patch_ram(buf, ofs, patch_flash1M_3E, sizeof(patch_flash1M_3E)); // V102
 				if(PatchType[i] == 0x54) {
-					if((cart == 4 || cart == 5) && V102)
-						break;
+					if((cart == 4 || cart == 5) && V102)break;
 					_patch_ram(buf, ofs, patch_flash1M_4, sizeof(patch_flash1M_4));
 				}
 				if(PatchType[i] == 0x55) {
-					if((cart == 4 || cart == 5) && V102)
+					if((cart == 4 || cart == 5) && V102) {
 						_patch_ram(buf, ofs, patch_flash1M_5E, sizeof(patch_flash1M_5E));
-					else	_patch_ram(buf, ofs, patch_flash1M_5, sizeof(patch_flash1M_5));
+					} else {
+						_patch_ram(buf, ofs, patch_flash1M_5, sizeof(patch_flash1M_5));
+					}
 				}
 				if(PatchType[i] == 0x56) {
 					if(cart == 6) {
@@ -1898,19 +1851,23 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 						break;
 					}
 					if(cart == 4 || cart == 5) {
-						if(V102)
+						if(V102) {
 							_patch_ram(buf, ofs, patch_flash1M_6E2, sizeof(patch_flash1M_6E2));
-						else	_patch_ram(buf, ofs, patch_flash1M_6E, sizeof(patch_flash1M_6E));
+						} else {
+							_patch_ram(buf, ofs, patch_flash1M_6E, sizeof(patch_flash1M_6E));
+						}
 					} else {
-						if(cart != 3)
+						if(cart != 3) {
 							patch_flash1M_6[38] = 0x32;
-						else	patch_flash1M_6[38] = 0x10;
+						} else {
+							patch_flash1M_6[38] = 0x10;
+						}
 						_patch_ram(buf, ofs, patch_flash1M_6, sizeof(patch_flash1M_6));
 					}
 				}
 				if(PatchType[i] == 0x57) {	// V102
 //					if(V102)
-						_patch_ram(buf, ofs, patch_flash1M_7, sizeof(patch_flash1M_7));
+					_patch_ram(buf, ofs, patch_flash1M_7, sizeof(patch_flash1M_7));
 				}
 				if(PatchType[i] == 0x58) {
 					if(cart == 6) {
@@ -1921,9 +1878,11 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 						if(V102)	break;
 						_patch_ram(buf, ofs, patch_flash1M_8E, sizeof(patch_flash1M_8E));
 					} else {
-						if(cart != 3)
+						if(cart != 3) {
 							patch_flash1M_8[46] = 0x32;
-						else	patch_flash1M_8[46] = 0x10;
+						} else {
+							patch_flash1M_8[46] = 0x10;
+						}
 						_patch_ram(buf, ofs, patch_flash1M_8, sizeof(patch_flash1M_8));
 					}
 				}
@@ -1936,9 +1895,11 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 						if(V102)	break;
 						_patch_ram(buf, ofs, patch_flash1M_9E, sizeof(patch_flash1M_9E));
 					} else {
-						if(cart != 3)
+						if(cart != 3) {
 							patch_flash1M_9[50] = 0x32;
-						else	patch_flash1M_9[50] = 0x10;
+						} else {
+							patch_flash1M_9[50] = 0x10;
+						}
 						_patch_ram(buf, ofs, patch_flash1M_9, sizeof(patch_flash1M_9));
 					}
 				}
@@ -2001,32 +1962,29 @@ void gba_patch_Ram(u32 exp, char *name, int cart)
 				}
 *************/
 				if(PatchType[i] == 0x86) {
-					if(fmini == 124)
+					if(fmini == 124) {
 						_patch_ram(buf, ofs, patch_fmini_5, sizeof(patch_fmini_5));
-					else	_patch_ram(buf, ofs, patch_fmini_6, sizeof(patch_fmini_6));
+					} else {
+						_patch_ram(buf, ofs, patch_fmini_6, sizeof(patch_fmini_6));
+					}
 				}
 				break;
 		}
 	}
-
 }
 
 
-
-void gba_patch(u8 *buf, u32 add, u32 bufsize, int GBAmode, char *name)
-{
+void gba_patch(u8 *buf, u32 add, u32 bufsize, int GBAmode, char *name) {
 	int	i, j;
 	u32	ofs;
 	u32	paddr;
 	int	fmini;
 
-	if(add == 0)
-		_patch_write(name);
+	if(add == 0)_patch_write(name);
 
-	if(SaveType < 2)	return;
+	if(SaveType < 2)return;
 
-	if(RemainByte != 0)
-		_patch(buf, 0, RemainPtr, RemainByte, bufsize);
+	if(RemainByte != 0)_patch(buf, 0, RemainPtr, RemainByte, bufsize);
 
 	fmini = 124;
 
@@ -2037,14 +1995,10 @@ void gba_patch(u8 *buf, u32 add, u32 bufsize, int GBAmode, char *name)
 		ofs = PatchAddr[i] - add;
 		switch(SaveType) {
 			case 2:			// EEPROM
-				if(PatchType[i] == 0x21)
-					_patch(buf, ofs, patch_eeprom_1, sizeof(patch_eeprom_1), bufsize);
-				if(PatchType[i] == 0x22)
-					_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
-				if(PatchType[i] == 0x23)
-					_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
-				if(PatchType[i] == 0x24)
-					_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
+				if(PatchType[i] == 0x21)_patch(buf, ofs, patch_eeprom_1, sizeof(patch_eeprom_1), bufsize);
+				if(PatchType[i] == 0x22)_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
+				if(PatchType[i] == 0x23)_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
+				if(PatchType[i] == 0x24)_patch(buf, ofs, patch_eeprom_2, sizeof(patch_eeprom_2), bufsize);
 				if(PatchType[i] == 0x25) {
 					paddr = 0x08000001 + PatchAddr[i+2];
 					patch_eeprom111_1[4] = (u8)(paddr & 0xFF);
@@ -2053,89 +2007,79 @@ void gba_patch(u8 *buf, u32 add, u32 bufsize, int GBAmode, char *name)
 					patch_eeprom111_1[7] = (u8)((paddr >> 24) & 0xFF);
 					_patch(buf, ofs, patch_eeprom111_1, sizeof(patch_eeprom111_1), bufsize);
 				}
-				if(PatchType[i] == 0x26)
-					_patch(buf, ofs, patch_eeprom111_2, sizeof(patch_eeprom111_2), bufsize);
-				if(PatchType[i] == 0x27)
-					_patch(buf, ofs, patch_eeprom111_3, sizeof(patch_eeprom111_3), bufsize);
+				if(PatchType[i] == 0x26)_patch(buf, ofs, patch_eeprom111_2, sizeof(patch_eeprom111_2), bufsize);
+				if(PatchType[i] == 0x27)_patch(buf, ofs, patch_eeprom111_3, sizeof(patch_eeprom111_3), bufsize);
 				break;
 			case 3:			// FLASH512_V
-				if(PatchType[i] == 0x31)
-					_patch(buf, ofs, patch_flash_5, sizeof(patch_flash_5), bufsize);
-				if(PatchType[i] == 0x32)
-					_patch(buf, ofs, patch_flash_3, sizeof(patch_flash_3), bufsize);
-				if(PatchType[i] == 0x33)
-					_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
-				if(PatchType[i] == 0x34)
-					_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
-				if(PatchType[i] == 0x35)
-					_patch(buf, ofs, patch_flash_6, sizeof(patch_flash_6), bufsize);
+				if(PatchType[i] == 0x31)_patch(buf, ofs, patch_flash_5, sizeof(patch_flash_5), bufsize);
+				if(PatchType[i] == 0x32)_patch(buf, ofs, patch_flash_3, sizeof(patch_flash_3), bufsize);
+				if(PatchType[i] == 0x33)_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+				if(PatchType[i] == 0x34)_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+				if(PatchType[i] == 0x35)_patch(buf, ofs, patch_flash_6, sizeof(patch_flash_6), bufsize);
 				break;
 			case 4:			// FLASH_V
-				if(PatchType[i] == 0x41)
-					_patch(buf, ofs, patch_flash120_1, sizeof(patch_flash120_1), bufsize);
-				if(PatchType[i] == 0x42)
-					_patch(buf, ofs, patch_flash_1, sizeof(patch_flash_1), bufsize);
-				if(PatchType[i] == 0x43)
-					_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+				if(PatchType[i] == 0x41)_patch(buf, ofs, patch_flash120_1, sizeof(patch_flash120_1), bufsize);
+				if(PatchType[i] == 0x42)_patch(buf, ofs, patch_flash_1, sizeof(patch_flash_1), bufsize);
+				if(PatchType[i] == 0x43)_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
 				if(PatchType[i] == 0x44) {
-					if(PatchType[1] == 0x41)
+					if(PatchType[1] == 0x41) {
 						_patch(buf, ofs, patch_flash120_2, sizeof(patch_flash120_2), bufsize);
-					else	_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+					} else {
+						_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+					}
 				}
 				if(PatchType[i] == 0x45) {
-					if(PatchType[1] == 0x41)
+					if(PatchType[1] == 0x41) {
 						_patch(buf, ofs, patch_flash120_3, sizeof(patch_flash120_3), bufsize);
-					else	_patch(buf, ofs, patch_flash_4, sizeof(patch_flash_4), bufsize);
+					} else {
+						_patch(buf, ofs, patch_flash_4, sizeof(patch_flash_4), bufsize);
+					}
 				}
-				if(PatchType[i] == 0x46)
-					_patch(buf, ofs, patch_flash_3, sizeof(patch_flash_3), bufsize);
-				if(PatchType[i] == 0x47)
-					_patch(buf, ofs, patch_flash_5, sizeof(patch_flash_5), bufsize);
-				if(PatchType[i] == 0x48)
-					_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
-				if(PatchType[i] == 0x49)
-					_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
-				if(PatchType[i] == 0x4A)
-					_patch(buf, ofs, patch_flash_6, sizeof(patch_flash_6), bufsize);
+				if(PatchType[i] == 0x46)_patch(buf, ofs, patch_flash_3, sizeof(patch_flash_3), bufsize);
+				if(PatchType[i] == 0x47)_patch(buf, ofs, patch_flash_5, sizeof(patch_flash_5), bufsize);
+				if(PatchType[i] == 0x48)_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+				if(PatchType[i] == 0x49)_patch(buf, ofs, patch_flash_2, sizeof(patch_flash_2), bufsize);
+				if(PatchType[i] == 0x4A)_patch(buf, ofs, patch_flash_6, sizeof(patch_flash_6), bufsize);
 				break;
 			case 5:			// FLASH1M_V
 				if(PatchType[i] == 0x51) {
 					for(j = i + 1; j < PatchCnt; j++) {
-						if(PatchType[j] == 0x58)
-							break;
+						if(PatchType[j] == 0x58)break;
 					}
-					if(j < PatchCnt)
+					if(j < PatchCnt) {
 						patch_flash1M_1[4] = 0x5B;	// V103
-					else	patch_flash1M_1[4] = 0x55;	// V102
-
+					} else {
+						patch_flash1M_1[4] = 0x55;	// V102
+					}
 					_patch(buf, ofs, patch_flash1M_1, sizeof(patch_flash1M_1), bufsize);
 				}
-				if(PatchType[i] == 0x52)
-					_patch(buf, ofs, patch_flash1M_2, sizeof(patch_flash1M_2), bufsize);
-				if(PatchType[i] == 0x53)
-					_patch(buf, ofs, patch_flash1M_3, sizeof(patch_flash1M_3), bufsize);
-				if(PatchType[i] == 0x54)
-					_patch(buf, ofs, patch_flash1M_4, sizeof(patch_flash1M_4), bufsize);
-				if(PatchType[i] == 0x55)
-					_patch(buf, ofs, patch_flash1M_5, sizeof(patch_flash1M_5), bufsize);
+				if(PatchType[i] == 0x52)_patch(buf, ofs, patch_flash1M_2, sizeof(patch_flash1M_2), bufsize);
+				if(PatchType[i] == 0x53)_patch(buf, ofs, patch_flash1M_3, sizeof(patch_flash1M_3), bufsize);
+				if(PatchType[i] == 0x54)_patch(buf, ofs, patch_flash1M_4, sizeof(patch_flash1M_4), bufsize);
+				if(PatchType[i] == 0x55)_patch(buf, ofs, patch_flash1M_5, sizeof(patch_flash1M_5), bufsize);
 				if(PatchType[i] == 0x56) {
-					if(GBAmode == 0)
+					if(GBAmode == 0) {
 						patch_flash1M_6[38] = 0x32;
-					else	patch_flash1M_6[38] = 0x10;
+					} else {
+						patch_flash1M_6[38] = 0x10;
+					}
 					_patch(buf, ofs, patch_flash1M_6, sizeof(patch_flash1M_6), bufsize);
 				}
-				if(PatchType[i] == 0x57)
-					_patch(buf, ofs, patch_flash1M_7, sizeof(patch_flash1M_7), bufsize);
+				if(PatchType[i] == 0x57)_patch(buf, ofs, patch_flash1M_7, sizeof(patch_flash1M_7), bufsize);
 				if(PatchType[i] == 0x58) {
-					if(GBAmode == 0)
+					if(GBAmode == 0) {
 						patch_flash1M_8[46] = 0x32;
-					else	patch_flash1M_8[46] = 0x10;
+					} else {
+						patch_flash1M_8[46] = 0x10;
+					}
 					_patch(buf, ofs, patch_flash1M_8, sizeof(patch_flash1M_8), bufsize);
 				}
 				if(PatchType[i] == 0x59) {
-					if(GBAmode == 0)
+					if(GBAmode == 0) {
 						patch_flash1M_9[50] = 0x32;
-					else	patch_flash1M_9[50] = 0x10;
+					} else {
+						patch_flash1M_9[50] = 0x10;
+					}
 					_patch(buf, ofs, patch_flash1M_9, sizeof(patch_flash1M_9), bufsize);
 				}
 				break;
@@ -2181,14 +2125,15 @@ void gba_patch(u8 *buf, u32 add, u32 bufsize, int GBAmode, char *name)
 					patch_fmini_6[0x43] = (u8)((paddr >> 24) & 0xFF);
 				}
 				if(PatchType[i] == 0x86) {
-					if(fmini == 124)
+					if(fmini == 124) {
 						_patch(buf, ofs, patch_fmini_5, sizeof(patch_fmini_5), bufsize);
-					else	_patch(buf, ofs, patch_fmini_6, sizeof(patch_fmini_6), bufsize);
+					} else {
+						_patch(buf, ofs, patch_fmini_6, sizeof(patch_fmini_6), bufsize);
+					}
 				}
 				break;
 		}
 	}
-
 	PatchCntS = i;
-
 }
+

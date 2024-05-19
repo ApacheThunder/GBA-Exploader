@@ -16,8 +16,8 @@ include $(DEVKITARM)/ds_rules
 # all directories are relative to this makefile
 #---------------------------------------------------------------------------------
 BUILD		:=	build
-SOURCES		:=	source source/tarosa
-INCLUDES	:=	include build source/tarosa
+SOURCES		:=	source source/tarosa source/bootloader
+INCLUDES	:=	include build source/tarosa source/bootloader
 DATA		:=	data
 STATICLIBS	:= 
 #---------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ export TARGET := GBA_ExpLoader
 export TOPDIR := $(CURDIR)
 
 export VERSION_MAJOR	:= 0
-export VERSION_MINOR	:= 60
+export VERSION_MINOR	:= 61
 export VERSTRING	:=	$(VERSION_MAJOR).$(VERSION_MINOR)
 
 # GMAE_ICON is the image used to create the game icon, leave blank to use default rule
@@ -27,12 +27,12 @@ GAME_ICON :=
 
 include $(DEVKITARM)/ds_rules
 
-.PHONY: data clean
+.PHONY: data ndsbootloader clean
 
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: checkarm7 checkarm9 $(TARGET).nds
+all: ndsbootloader checkarm7 checkarm9 $(TARGET).nds
 
 #---------------------------------------------------------------------------------
 checkarm7:
@@ -50,19 +50,23 @@ $(TARGET).nds : arm7/$(TARGET).elf arm9/$(TARGET).elf
 
 data:
 	@mkdir -p data
+	
+ndsbootloader: data
+	$(MAKE) -C ndsbootloader LOADBIN=$(CURDIR)/arm9/data/load.bin
 
 #---------------------------------------------------------------------------------
 arm7/$(TARGET).elf:
 	$(MAKE) -C arm7
 
 #---------------------------------------------------------------------------------
-arm9/$(TARGET).elf:
+arm9/$(TARGET).elf: ndsbootloader
 	$(MAKE) -C arm9
 
 #---------------------------------------------------------------------------------
 clean:
 	$(MAKE) -C arm9 clean
 	$(MAKE) -C arm7 clean
+	$(MAKE) -C ndsbootloader clean
 	rm -rf data
 	rm -f $(TARGET).nds
 

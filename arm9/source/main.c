@@ -37,21 +37,23 @@
 #include "GBA_ini.h"
 #include "ctrl_tbl.h"
 
+#include "bootloader/ret_menu9_gen.h"
+
 #include "memcleaner.h"
 
-#include "linkreset_arm9.h"
 #include "skin.h"
 #include "message.h"
 
 #include "tarosa/tarosa_Graphic.h"
 #include "tarosa/tarosa_Shinofont.h"
 
+
 extern uint16* MainScreen;
 extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.60"
+#define VERSTRING "v0.61"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -65,12 +67,8 @@ char filename[512];
 
 u8	*rwbuf;
 
-#define IPC_CMD_GBAMODE  1
-#define IPC_CMD_SLOT2	 2
-#define IPC_CMD_TURNOFF  9
-#define IPC_CMD_SR_R4TF 11
-#define IPC_CMD_SR_DLMS 12
-#define IPC_CMD_SR_GEN	13
+int	GBAmode;
+bool softReset;
 
 extern int carttype;
 extern bool isSuperCard;
@@ -96,47 +94,18 @@ u32 inp_key() {
 }
 
 
-extern void ret_menu9_R4(void);
 extern bool ret_menu_chk(void);
-extern bool ret_menu9_Gen(void);
-extern void ret_menu9_GENs(void);
 
 
 extern void setGBAmode(void);
 extern void getGBAmode(void);
 
-void turn_off(int cmd) {
-	if(cmd == 0) {			// ìdåπíf
-		// FIFOSend(IPC_CMD_TURNOFF);
+void turn_off(bool softReset) {
+	if (softReset) {
+		if (!ret_menu9_Gen())systemShutDown();
+	} else {
 		systemShutDown();
 	}
-	if(cmd == 1) {			// R4 Soft Reset
-		// FIFOSend(IPC_CMD_SR_R4TF);
-		fifoSendValue32(FIFO_USER_02, 1);
-		REG_IME = 0;
-		REG_IE = 0;
-		REG_IF = REG_IF;
-
-		REG_EXMEMCNT = 0xE880;
-		REG_IPC_SYNC = 0;
-		DMA0_CR = 0;
-		DMA1_CR = 0;
-		DMA2_CR = 0;
-
-		ret_menu9_R4();
-	}
-	if(cmd == 2) {			// DSLink Soft Reset
-		// FIFOSend(IPC_CMD_SR_DLMS);
-		fifoSendValue32(FIFO_USER_03, 1);
-		LinkReset_ARM9();
-	}
-	if(cmd == 3) {			// General purpose Soft Reset
-		ret_menu9_Gen();
-		fifoSendValue32(FIFO_USER_04, 1);
-		// FIFOSend(IPC_CMD_SR_GEN);
-		ret_menu9_GENs();
-	}
-
 	while(1);
 }
 
@@ -146,7 +115,7 @@ void gba_frame() {
 	int	x=0, y=0;
 	u16	*pDstBuf1;
 	u16	*pDstBuf2;
-
+	
 	if (access("/gbaframe.bmp", F_OK) == 0) {
 		ret = LoadSkin(2, "/gbaframe.bmp");
 		if(ret)return;
@@ -346,7 +315,7 @@ void dsp_bar(int mod, int per) {
 		return;
 	}
 
-	if(gbar == NULL)	return;
+	if(gbar == NULL)return;
 
 	if(per != oldper) {
 		oldper = per;
@@ -370,8 +339,6 @@ void dsp_bar(int mod, int per) {
 	return;
 }
 
-
-
 void RamClear() {
 	u32	*a8;	//, *a9;
 	int	i;
@@ -389,9 +356,6 @@ void RamClear() {
 	*(vu32*)0x8240000 = 0x00000000;
 }
 
-
-int	GBAmode;
-int	r4tf;
 
 
 void _dsp_clear() {	DrawBox_SUB(SubScreen, 0, 28, 255, 114, 0, 1); }
@@ -478,7 +442,7 @@ int rumble_cmd() {
 			break;
 		}
 		if(ky & KEY_START) {
-			if(r4tf) {
+			if(softReset) {
 				cmd = 99;
 				SetRompage(0);
 				SetRampage(16);
@@ -601,7 +565,7 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 			if(carttype < 3) {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[5], 1, 0, 1);
 			} else {
-				if(r4tf) {
+				if(softReset) {
 					ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[20], 1, 0, 1);
 				} else {
 					ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)"                          ", 1, 0, 1);
@@ -612,7 +576,7 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 //			DrawBox_SUB(SubScreen, 76, 116, 180, 135, 6, 1);
 //			DrawBox_SUB(SubScreen, 77, 117, 179, 134, 5, 0);
 
-			if(r4tf) {
+			if(softReset) {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[6], 1, 0, 1);
 			} else {
 				ShinoPrint_SUB( SubScreen, 2*6, 14*12+6, (u8 *)t_msg[7], 1, 0, 1);
@@ -682,7 +646,7 @@ int gba_sel0()
 	int	cn;
 
 	cn = 1;
-	if(r4tf)	cn++;
+	if(softReset)	cn++;
 
 	_gba_sel_dsp(0, 0, 0);
 
@@ -713,7 +677,7 @@ int gba_sel0()
 			}
 		}
 		if(ky & KEY_START) {
-			if(r4tf) {
+			if(softReset) {
 				cmd = 99;
 				SetRompage(0);
 				SetRampage(16);
@@ -768,7 +732,7 @@ int gba_sel() {
 	int	ii;
 
 	cn = 1;
-	if(r4tf)	cn++;
+	if(softReset)	cn++;
 
 	_gba_sel_dsp(sel, yc, 0);
 
@@ -857,7 +821,7 @@ int gba_sel() {
 			}
 		}
 		if((ky & KEY_R) && !isSuperCard) {
-			if(r4tf && (carttype > 2)) {
+			if(softReset && (carttype > 2)) {
 				cmd = 3;
 				break;
 			}
@@ -876,7 +840,7 @@ int gba_sel() {
 
 
 		if(ky & KEY_START) {
-			if(r4tf) {
+			if(softReset) {
 				cmd = 99;
 				if(carttype == 1) {
 					SetRompage(0);
@@ -886,7 +850,7 @@ int gba_sel() {
 			}
 		}
 		if(ky & KEY_SELECT) {
-			if(r4tf && (GBAmode == 0)) {
+			if(softReset && (GBAmode == 0)) {
 				if(!(fs[sortfile[sel]].type & S_IFDIR))
 					ret = writeFileToRam(sortfile[sel]);
 				if(ret != 0) {
@@ -896,7 +860,7 @@ int gba_sel() {
 //					if(carttype == 3)
 //						SetRompage(0x300);
 //					else	SetRompage(384);
-					turn_off(r4tf);
+					turn_off(softReset);
 				}
 			}
 		}
@@ -1040,11 +1004,11 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	switch (carttype) {
 		default: 
 			err_cnf(2, 3);
-			turn_off(r4tf);
+			turn_off(softReset);
 			break;
 		case 0: 
 			err_cnf(2, 3);
-			turn_off(r4tf);
+			turn_off(softReset);
 			break;
 		case 1: 
 			if (is3in1Plus) {
@@ -1079,11 +1043,17 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	ShinoPrint_SUB( SubScreen, 8*6, 5*12, (u8*)tbuf, 3, 0, 1);
 **********************/
 
-	if(ret_menu_chk()) {
+	if (ret_menu_chk()) {
+		softReset = true;
+	} else {
+		softReset = false;
+	}
+
+	/*if(ret_menu_chk()) {
 		r4tf = 3;
 	} else {
 		r4tf = 0;
-		/*if(_io_dldi == 0x46543452) {		// R4TF
+		if(_io_dldi == 0x46543452) {		// R4TF
 			if((*(vu32*)0x027FFE18) == 0x00000000) {
 				r4dt = fopen("/_DS_MENU.DAT", "rb");
 				if(r4dt != NULL) {
@@ -1097,11 +1067,12 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 			} else {
 				r4tf = 1;
 			}
-		}*/
+		}
 		if(io_dldi_data->ioInterface.ioType == 0x534D4C44)r4tf = 2; // DLMS
-	}
+	}*/
 	
-	if (isSuperCard)r4tf = 0;
+	// SuperCard does not support 3in1's Rumble commands. :P
+	if (isSuperCard)softReset = false;
 
 /******************************
 	sprintf(tbuf, "0x27FFE18 = %08X", (*(vu32*)0x027FFE18));
@@ -1127,10 +1098,7 @@ inp_key();
 
 	GBA_ini();
 
-	if(checkSRAM_cnf() == false) {
-		if(carttype != 5)if(cnf_inp(9, 10) & KEY_B)turn_off(r4tf);
-	}
-
+	if(!checkSRAM_cnf() && (carttype != 5) && (cnf_inp(9, 10) & KEY_B))turn_off(softReset);
 
 //ShinoPrint_SUB( SubScreen, 6*6, 7*12, "FILE LIST", 1, 0, 0 );
 //	mkdir("/GBA_SAVE", 0777);
@@ -1147,7 +1115,7 @@ inp_key();
 	}
 
 	getGBAmode();
-	if((GBAmode == 2) && (r4tf == 0))GBAmode = 0;
+	if((GBAmode == 2) && !softReset)GBAmode = 0;
 	if(carttype > 2)GBAmode = 0;
 
 	cmd = -1;
@@ -1184,7 +1152,7 @@ inp_key();
 			break;
 	}
 
-	turn_off(r4tf);
+	turn_off(softReset);
 }
 
 

@@ -30,7 +30,7 @@
 
 #define MAX_NOR		0x2000000 	// 32MByte 
 #define MAX_NORPLUS		0x4000000 	// 64MByte  (3 in 1 Plus)
-#define MAX_PSRAM	0x1000000 	// 16MByte 
+#define MAX_PSRAM	0x1000000 	// 16MByte
 #define SRAM_PAGE_SIZE	0x1000	  	// SRAM Page Size
 #define MAX_SRAM	0x80000		// 4MBit/512KByte total SRAM
 
@@ -450,17 +450,17 @@ int checkFlashID() {
 			return carttype;
 		case 0x227E2218: carttype = 1; return carttype; // 3in1
 		case 0x227E2202: carttype = 2; return carttype; // New3in1
-		case 0x227E2222:
-			is3in1Plus = true;
-			isSuperCard = false;
-			carttype = 2; // 3in1 Plus
-			return carttype;
 		case 0x227E2220: carttype = 3; return carttype; // EZ4
 		case 0x227E0000: // SuperCard
 			carttype = 6; 
 			is3in1Plus = false;
 			isSuperCard = true;
-			return carttype; // SuperCard
+			return carttype;
+		case 0x89168916: // 3in1 Plus
+			is3in1Plus = true;
+			isSuperCard = false;
+			carttype = 1; 
+			return carttype;
 		default: return 0; // Unsupported/Unimplemented Cart ID
 	}
 }
@@ -638,27 +638,23 @@ void writeSramToFile(char *savename) {
 	ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
 	if(saver != NULL) {
 		len = USE_SRAM / 2;
-		if(len > savesize)
-			len = savesize;
+		if(len > savesize)len = savesize;
 		fwrite(rwbuf, 1, len, saver);
 	}
 	if(savesize > USE_SRAM / 2) {
 		_RamSave(1);
 		ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
-		if(saver != NULL)
-			fwrite(rwbuf, 1, USE_SRAM / 2, saver);
+		if(saver != NULL)fwrite(rwbuf, 1, USE_SRAM / 2, saver);
 	}
 	fclose(saver);
 
 	ctrl.save_flg[GBAmode] = 0xFF;
 
-	if(carttype < 4)
-		OpenNorWrite();
+	if(carttype < 4)OpenNorWrite();
 
 	ctrl_set();
 
-	if(carttype < 4)
-		CloseNorWrite();
+	if(carttype < 4)CloseNorWrite();
 }
 
 void _WritePSram(uint32 address, u8* data , uint32 size );
@@ -852,7 +848,6 @@ int writeFileToNor(int sel) {
 	strcpy(savName, fs[sel].filename);
 	cmd = save_sel(0, savName);
 
-
 	SetRompage(0);
 	OpenNorWrite();
 	SetSerialMode();
@@ -860,8 +855,9 @@ int writeFileToNor(int sel) {
 
 	for(siz = 0; siz < fs[sel].filesize; siz += 0x40000) {
 		dsp_bar(0, siz * 100 / fs[sel].filesize);
-		Block_Erase(siz);
+		if (is3in1Plus) { Block_EraseIntel(siz); } else { Block_Erase(siz); }
 	}
+	
 	dsp_bar(0, 100);
 
 	chip_reset();
@@ -901,11 +897,7 @@ int writeFileToNor(int sel) {
 	CloseNorWrite();
 
 //	getSaveFilename(sel, savName);
-	if(cmd >= 0) {
-		writeSramFromFile(savName);
-	} else	{
-		blankSRAM(savName);
-	}
+	if(cmd >= 0) { writeSramFromFile(savName); } else {	blankSRAM(savName);	}
 
 	dsp_bar(-1, 100);
 //	SetRampage(USE_SRAM_NOR);
@@ -914,8 +906,8 @@ int writeFileToNor(int sel) {
 
 
 int writeFileToRam(int sel) {
-	FILE	*gbaFile;
-	char	savName[512];
+	FILE *gbaFile;
+	char savName[512];
 	u32	siz;
 	u32	exp, exps;
 	u32	fsz;

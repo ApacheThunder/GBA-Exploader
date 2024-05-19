@@ -5,7 +5,6 @@
 ***************************************************************/
 
 #include <nds.h>
-//#include <nds/registers_alt.h>	// devkitPror20
 #include <nds/arm9/dldi.h>
 
 #include <fat.h>
@@ -13,10 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// extern u32	_io_dldi;
+static char *menu_nam;
+static char name[32];
 
-static	char	*menu_nam;
-static	char	name[32];
+static ALIGN(4) u32 hed[16];
+static ALIGN(4) u8	*ldrBuf;
 
 bool ret_menu_chk() {
 	FILE	*fp;
@@ -39,7 +39,7 @@ bool ret_menu_chk() {
 
 	switch (io_dldi_data->ioInterface.ioType) {
 		case 0x53444353: menu_nam = "/MSFORSC.NDS"; break; // SCDS		
-		// case 0x4F49524E: menu_nam = "/udisk.nds"; break; // N-Card and Clones		
+		case 0x4F49524E: menu_nam = "/udisk.dat"; break; // N-Card and Clones		
 		case 0x4E475052: menu_nam = "/akmenu4.nds"; break; // AK.R.P.G NAND		
 		case 0x53475052: menu_nam = "/akmenu4.nds"; break; // AK.R.P.G SD		
 		case 0x44533958: menu_nam = "/loader.nds"; break; // X9 SD
@@ -61,11 +61,8 @@ bool ret_menu_chk() {
 	return false;
 }
 
-
-bool ret_menu9_Gen() {
-	u32	hed[16];
-	u8	*ldrBuf;
-	FILE	*ldr;
+ITCM_CODE bool ret_menu9_Gen() {
+	FILE *ldr;
 	u32	siz;
 
 	ldr = fopen(menu_nam, "rb");
@@ -89,7 +86,6 @@ bool ret_menu9_Gen() {
 	fread(ldrBuf + 512 + hed[11], 1, hed[15], ldr);
 
 	fclose(ldr);
-
 
 	(*(vu32*)0x027FFDF4) = (u32)ldrBuf;
 

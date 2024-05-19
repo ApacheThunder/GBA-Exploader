@@ -281,9 +281,9 @@ static bool intLoadBM(const char *bmpfn,u16 *pbm,const u32 bmw,const u32 bmh) {
 }
 
 
-DTCM_DATA ALIGN(4) static u16 *pBuf;
+ALIGN(4) static u16 *pBuf;
 
-ITCM_CODE bool LoadSkin(int mod, char *Name) {
+bool LoadSkin(int mod, char *Name) {
 	
 	u16	*pDstBuf1;
 	u16	*pDstBuf2;

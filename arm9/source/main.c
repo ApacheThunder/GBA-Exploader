@@ -51,7 +51,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.59"
+#define VERSTRING "v0.60"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -75,7 +75,7 @@ u8	*rwbuf;
 extern int carttype;
 extern bool isSuperCard;
 extern bool is3in1Plus;
-
+extern bool finishedNorFlash;
 
 u32 inp_key() {
 	u32	ky;
@@ -195,7 +195,7 @@ static void resetToSlot2() {
 	swiSoftReset();
 }
 
-ITCM_CODE void gbaMode() {
+void gbaMode() {
 
 	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
 		// resetARM9Memory();
@@ -847,7 +847,7 @@ int gba_sel() {
 		}
 
 
-		if(ky & KEY_L) {
+		if((ky & KEY_L) && !isSuperCard) {
 			if(GBAmode > 0) {
 				GBAmode--;
 				setGBAmode();
@@ -856,8 +856,8 @@ int gba_sel() {
 //				break;
 			}
 		}
-		if(ky & KEY_R) {
-			if(r4tf && carttype > 2) {
+		if((ky & KEY_R) && !isSuperCard) {
+			if(r4tf && (carttype > 2)) {
 				cmd = 3;
 				break;
 			}
@@ -1047,14 +1047,14 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 			turn_off(r4tf);
 			break;
 		case 1: 
-			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 ); break; // SetRampage(16); // SetShake(0x08);
-		case 2:
 			if (is3in1Plus) {
-				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Plus]", 0, 0, 0 ); 
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Pls]", 0, 0, 0 ); 
 			} else {
-				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 ); 
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
 			}
-			break;
+			break; // SetRampage(16); // SetShake(0x08);
+		case 2: 
+			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[New3in1]", 0, 0, 0 ); break;
 		case 3:
 			SetRompage(0x300);
 			ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"  [ EZ4 ]", 0, 0, 0 );
@@ -1083,26 +1083,25 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 		r4tf = 3;
 	} else {
 		r4tf = 0;
-		if(io_dldi_data->ioInterface.ioType == 0x46543452) {		// R4TF
+		/*if(_io_dldi == 0x46543452) {		// R4TF
 			if((*(vu32*)0x027FFE18) == 0x00000000) {
-				/*r4dt = fopen("/_DS_MENU.DAT", "rb");
+				r4dt = fopen("/_DS_MENU.DAT", "rb");
 				if(r4dt != NULL) {
 					handle = (__handle *)r4dt->_file;
-					// handle = (_handle*)r4dt->_file;
-					// file = (_FILE_STRUCT*)handle->fileStruct;
-					file = (FILE*)handle->fileStruct;
-					// part = file->partition;
-					// (*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
+					file = (FILE_STRUCT *)handle->fileStruct;
+					part = file->partition;
+					(*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
 					fclose(r4dt);
 					r4tf = 1;
-				}*/
+				}
 			} else {
 				r4tf = 1;
 			}
-		}
-
+		}*/
 		if(io_dldi_data->ioInterface.ioType == 0x534D4C44)r4tf = 2; // DLMS
 	}
+	
+	if (isSuperCard)r4tf = 0;
 
 /******************************
 	sprintf(tbuf, "0x27FFE18 = %08X", (*(vu32*)0x027FFE18));
@@ -1186,7 +1185,6 @@ inp_key();
 	}
 
 	turn_off(r4tf);
-
 }
 
 

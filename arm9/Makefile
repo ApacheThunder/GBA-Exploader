@@ -23,7 +23,6 @@ STATICLIBS	:=
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-#            $(ARCH) $(INCLUDE) -DARM9 -D_LegacyCardLib
 ARCH	:= 	-mthumb -mthumb-interwork -march=armv5te -mtune=arm946e-s
 CFLAGS  :=	-g -Wall -Wno-format-overflow -O2 \
             $(ARCH) $(INCLUDE) -DARM9

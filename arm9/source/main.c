@@ -33,27 +33,24 @@
 #include <string.h>
 
 #include "maindef.h"
-#include "dsCard.h"
-#include "GBA_ini.h"
-#include "ctrl_tbl.h"
-
-#include "bootloader/ret_menu9_gen.h"
-
-#include "memcleaner.h"
-
-#include "skin.h"
-#include "message.h"
 
 #include "tarosa/tarosa_Graphic.h"
 #include "tarosa/tarosa_Shinofont.h"
 
+#include "ret_menu9_gen.h"
+#include "dsCard.h"
+
+#include "GBA_ini.h"
+#include "ctrl_tbl.h"
+#include "skin.h"
+#include "message.h"
 
 extern uint16* MainScreen;
 extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.61"
+#define VERSTRING "v0.61b"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -145,8 +142,7 @@ void gba_frame() {
 }
 
 static void resetToSlot2() {
-	vu32	vr;
-
+	vu32 vr;
     // make arm9 loop code
 	*((vu32*)0x027FFE08) = (u32)0xE59FF014;  // ldr pc, 0x027FFE24
 	*((vu32*)0x027FFE24) = (u32)0x027FFE08;  // Set ARM9 Loop address
@@ -154,8 +150,7 @@ static void resetToSlot2() {
 
 	sysSetCartOwner(BUS_OWNER_ARM7);  // ARM7 has access to GBA cart
 
-	// FIFOSend(IPC_CMD_SLOT2);
-	fifoSendValue32(FIFO_USER_05, 1);
+	fifoSendValue32(FIFO_USER_02, 1);
 	
 	for(vr = 0; vr < 0x20000; vr++);	// Wait ARM7
 
@@ -166,10 +161,7 @@ static void resetToSlot2() {
 
 void gbaMode() {
 
-	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0) {
-		// resetARM9Memory();
-		resetToSlot2();
-	}
+	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0)resetToSlot2();
 
 	videoSetMode(0);
 	videoSetModeSub(0);
@@ -960,7 +952,8 @@ void mainloop(void) {
 	DrawBox_SUB(SubScreen, 21, 4, 234, 26, 5, 1);
 	DrawBox_SUB(SubScreen, 22, 5, 233, 25, 0, 0);
 	ShinoPrint_SUB( SubScreen, 9*6, 1*12-2, (u8*)"GBA ExpLoader", 0, 0, 0);
-	ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8 *)VERSTRING, 0, 0, 0);
+	// ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
+	ShinoPrint_SUB( SubScreen, 33*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
 
 
 	DrawBox_SUB(SubScreen, 6, 125, 249, 190, 5, 0);

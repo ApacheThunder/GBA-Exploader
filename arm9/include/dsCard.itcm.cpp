@@ -145,7 +145,7 @@ u32 ReadNorFlashID() {
 			return 0x227E2218;
 		}
 	}
-	return 0x227E2220;
+	return 0x227E2220; // EZFlash IV or EWIN
 }
 
 void chip_reset() {

@@ -9,7 +9,7 @@ export TARGET := GBA_ExpLoader
 export TOPDIR := $(CURDIR)
 
 export VERSION_MAJOR	:= 0
-export VERSION_MINOR	:= 61
+export VERSION_MINOR	:= 61b
 export VERSTRING	:=	$(VERSION_MAJOR).$(VERSION_MINOR)
 
 # GMAE_ICON is the image used to create the game icon, leave blank to use default rule
@@ -45,11 +45,11 @@ checkarm9:
 #---------------------------------------------------------------------------------
 $(TARGET).nds : arm7/$(TARGET).elf arm9/$(TARGET).elf
 	@ndstool	-c $@ -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf \
-				-b $(CURDIR)/logo32.bmp "GBA ExpLoader;Version $(VERSTRING);By Rudolph;" \
+				-b $(CURDIR)/logo32.bmp "GBA ExpLoader;Version $(VERSTRING);By Rudolph" \
 				-g #### 01 "GBAEXPLOADER" -z 80040000 -u 00030004 -a 00000138 -p 0001 \
 
 data:
-	@mkdir -p data
+	@mkdir -p arm9/data
 	
 ndsbootloader: data
 	$(MAKE) -C ndsbootloader LOADBIN=$(CURDIR)/arm9/data/load.bin
@@ -67,6 +67,6 @@ clean:
 	$(MAKE) -C arm9 clean
 	$(MAKE) -C arm7 clean
 	$(MAKE) -C ndsbootloader clean
-	rm -rf data
+	rm -rf arm9/data
 	rm -f $(TARGET).nds
 

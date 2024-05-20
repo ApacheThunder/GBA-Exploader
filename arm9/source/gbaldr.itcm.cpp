@@ -492,8 +492,7 @@ int checkSRAM(char *name) {
 	ctrl_get();
 
 	for(i = 0; ctrl.sign[i] != 0; i++) {
-		if(ctrl.sign[i] != Rudolph[i])
-			break;
+		if(ctrl.sign[i] != Rudolph[i])break;
 	}
 
 	if(carttype < 4)OpenNorWrite();

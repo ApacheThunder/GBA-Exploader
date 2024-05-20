@@ -37,6 +37,24 @@ volatile bool switchedMode = false;
 // They used r0 instead of r2. This reimplementation fixes that issue for now.
 extern void swiSwitchToGBAModeFixed();
 
+static void prepareReset() {
+	vu32	vr;
+	u32	i;
+
+	powerOn(POWER_SOUND);
+
+	for(i = 0x040000B0; i < (0x040000B0+0x30); i+=4)*((vu32*)i) = 0;
+
+	REG_IME = IME_DISABLE;
+	REG_IE = 0;
+	REG_IF = ~0;
+
+	for(vr = 0; vr < 0x100; vr++);	// Wait ARM9
+
+	swiSoftReset();
+}
+
+
 void gbaMode() {
 	vu32	vr;
 
@@ -57,15 +75,18 @@ volatile bool exitflag = false;
 void powerButtonCB() { exitflag = true; }
 
 void fifoCheckHandler() {
-	if (!switchedMode && fifoCheckValue32(FIFO_USER_01)) {
-		switchedMode = true;
-		gbaMode();
+	if (!switchedMode) {
+		if (fifoCheckValue32(FIFO_USER_01)) {
+			switchedMode = true;
+			gbaMode();
+		} else if (fifoCheckValue32(FIFO_USER_02)) {
+			switchedMode = true;
+			prepareReset();
+		}
 	}
 }
 
 void VblankHandler(void) { fifoCheckHandler(); }
-
-
 void VcountHandler() { inputGetAndSend(); }
 
 int main() {

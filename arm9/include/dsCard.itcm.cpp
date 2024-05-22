@@ -345,8 +345,8 @@ void Block_Erase(u32 blockAdd) {
 		// address-=0x2000000;
 		mapAddress -= 0x2000000;
 		b512 = true;
-		OpenNorWrite();
 	}
+	OpenNorWrite();
 	if(ID==0x89168916) {
 		*((vu16*)(FlashBase+mapAddress)) = 0x50;
 		*((vu16*)(FlashBase+mapAddress+0x1000*2)) = 0x50;
@@ -354,7 +354,7 @@ void Block_Erase(u32 blockAdd) {
 		*((vu16*)(FlashBase+mapAddress+0x1000*2)) = 0xFF;
 	}
 	for(loop=0;loop<len/2;loop++)p[loop]=*((vu16*)(FlashBase+mapAddress+loop*2));
-	// if (ID==0x89168916)CloseNorWrite();
+	if (ID==0x89168916)CloseNorWrite();
 	if(b512)SetRompage(0);
 }*/
 

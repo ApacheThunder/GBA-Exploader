@@ -32,8 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "maindef.h"
-
 #include "tarosa/tarosa_Graphic.h"
 #include "tarosa/tarosa_Shinofont.h"
 
@@ -50,7 +48,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.61b"
+#define VERSTRING "v0.62"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -70,7 +68,6 @@ bool softReset;
 extern int carttype;
 extern bool isSuperCard;
 extern bool is3in1Plus;
-extern bool finishedNorFlash;
 
 u32 inp_key() {
 	u32	ky;
@@ -79,13 +76,13 @@ u32 inp_key() {
 		swiWaitForVBlank();
 		scanKeys();
 		ky = keysDown();
-		if(ky & KEY_A)	break;
-		if(ky & KEY_B)	break;
+		if(ky & KEY_A)break;
+		if(ky & KEY_B)break;
 	}
 	while(1) {
 		swiWaitForVBlank();
 		scanKeys();
-		if(keysHeld() != ky)	break;
+		if(keysHeld() != ky)break;
 	}
 	return(ky);
 }
@@ -103,7 +100,7 @@ void turn_off(bool softReset) {
 	} else {
 		systemShutDown();
 	}
-	while(1);
+	while(1)swiWaitForVBlank();
 }
 
 
@@ -126,6 +123,11 @@ void gba_frame() {
 
 	if (access("/_system_/gbaframe.bmp", F_OK) == 0) {
 		ret = LoadSkin(2, "/_system_/gbaframe.bmp");
+		if(ret)return;
+	}
+	
+	if (access("/ttmenu/gbaframe.bmp", F_OK) == 0) {
+		ret = LoadSkin(2, "/ttmenu/gbaframe.bmp");
 		if(ret)return;
 	}
 
@@ -175,7 +177,7 @@ void gbaMode() {
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	fifoSendValue32(FIFO_USER_01, 1);
 	REG_IME = 0;
-	while(1);
+	while(1)swiWaitForVBlank();
 } 
 
 
@@ -932,7 +934,7 @@ int gba_sel() {
 
 // extern u32	_io_dldi;
 
-extern	void	setLang(void);
+extern void setLang(void);
 
 
 void mainloop(void) {
@@ -952,8 +954,8 @@ void mainloop(void) {
 	DrawBox_SUB(SubScreen, 21, 4, 234, 26, 5, 1);
 	DrawBox_SUB(SubScreen, 22, 5, 233, 25, 0, 0);
 	ShinoPrint_SUB( SubScreen, 9*6, 1*12-2, (u8*)"GBA ExpLoader", 0, 0, 0);
-	// ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
-	ShinoPrint_SUB( SubScreen, 33*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
+	// ShinoPrint_SUB( SubScreen, 33*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
+	ShinoPrint_SUB( SubScreen, 34*6-2, 12, (u8*)VERSTRING, 0, 0, 0);
 
 
 	DrawBox_SUB(SubScreen, 6, 125, 249, 190, 5, 0);
@@ -1036,36 +1038,12 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	ShinoPrint_SUB( SubScreen, 8*6, 5*12, (u8*)tbuf, 3, 0, 1);
 **********************/
 
-	if (ret_menu_chk()) {
-		softReset = true;
-	} else {
-		softReset = false;
-	}
-
-	/*if(ret_menu_chk()) {
-		r4tf = 3;
-	} else {
-		r4tf = 0;
-		if(_io_dldi == 0x46543452) {		// R4TF
-			if((*(vu32*)0x027FFE18) == 0x00000000) {
-				r4dt = fopen("/_DS_MENU.DAT", "rb");
-				if(r4dt != NULL) {
-					handle = (__handle *)r4dt->_file;
-					file = (FILE_STRUCT *)handle->fileStruct;
-					part = file->partition;
-					(*(vu32*)0x027FFE18) = (part->rootDirStart + file->dirEntryStart.sector) * 512 + file->dirEntryStart.offset * 32;
-					fclose(r4dt);
-					r4tf = 1;
-				}
-			} else {
-				r4tf = 1;
-			}
-		}
-		if(io_dldi_data->ioInterface.ioType == 0x534D4C44)r4tf = 2; // DLMS
-	}*/
-	
 	// SuperCard does not support 3in1's Rumble commands. :P
-	if (isSuperCard)softReset = false;
+	if (isSuperCard) {
+		softReset = false;
+	} else {
+		softReset = ret_menu_chk();
+	}
 
 /******************************
 	sprintf(tbuf, "0x27FFE18 = %08X", (*(vu32*)0x027FFE18));

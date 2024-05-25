@@ -17,8 +17,8 @@ int	PatchCntS;
 u32	PatchType[28];
 u32	PatchAddr[28];
 
-u8	*RemainPtr;
-u32	RemainByte;
+u8 *RemainPtr;
+u32 RemainByte;
 
 
 static	int _type_chk(u32 *pbuf, u32 c, u32 ofs) {
@@ -723,9 +723,7 @@ static bool _get_sign(char *name, char *sign) {
 
 	sprintf(sign, "%s/%s", ini.sign_dir, name);
 	ln = strlen(sign) - 3;
-	if(sign[ln] != 'G' && sign[ln] != 'g')
-		return false;
-
+	if(sign[ln] != 'G' && sign[ln] != 'g')return false;
 
 	sign[ln+0] = 's';
 	sign[ln+1] = 'g';
@@ -791,11 +789,7 @@ u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs) {
 	if(PatchVer == PATCH_VER)return(SaveSize);
 
 	pbuf = (u32*)buf;
-	if(PatchCnt > 1) {
-		oldtype = PatchType[PatchCnt-1]/0x10;
-	} else {
-		oldtype = 0;
-	}
+	if(PatchCnt > 1) { oldtype = PatchType[PatchCnt-1]/0x10; } else { oldtype = 0; }
 
 	i = ofs;
 	for(ii = 0; ii < bufsize / 4; ii++) {
@@ -849,19 +843,19 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
 	u32	*pbuf;
 	// int	cnt;
 
-
-	if(SaveType == 0) {		// UNKNOWN Famicom Mini
-		if(PatchCnt > 2 && PatchType[1] == 0x81 && PatchType[2] == 0x84) {
-			SaveType = 8;
-			PatchCnt = 3;
-			strcpy((char*)SaveVer, "FaMini");
-		}
-	}
-
-	if(SaveType == 8) {
-		PatchType[PatchCnt] = 0x86;	 // Patch
-		PatchAddr[PatchCnt] = 0x100000 - 0x800;
-		PatchCnt++;
+	switch (SaveType) {
+		case 0:	// UNKNOWN Famicom Mini
+			if(PatchCnt > 2 && PatchType[1] == 0x81 && PatchType[2] == 0x84) {
+				SaveType = 8;
+				PatchCnt = 3;
+				strcpy((char*)SaveVer, "FaMini");
+			}
+			break;
+		case 8:
+			PatchType[PatchCnt] = 0x86;	 // Patch
+			PatchAddr[PatchCnt] = 0x100000 - 0x800;
+			PatchCnt++;
+			break;
 	}
 
 	if(SaveType < 2 || PatchCnt <= 1 || SaveType == PatchType[1]/0x10)return;
@@ -874,27 +868,17 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
 //		dmaCopyWords(3, buf, (void *)exp, 0x100000);
 		// cnt = PatchCnt;
 		for(ii = 0; ii < bufsize / 4; ii++) {
-			if(SaveType == 2) {
-				ii = _eeprom_chk(pbuf, ii, i, size);
-			}
-
-			if(SaveType == 3) {
-				ii = _flash512_chk(pbuf, ii, i);
-			}
-
-			if(SaveType == 4) {
-				ii = _flash_chk(pbuf, ii, i);
-			}
-
-			if(SaveType == 5) {
-				ii = _flash1M_chk(pbuf, ii, i);
+			switch (SaveType) {
+				case 2: ii = _eeprom_chk(pbuf, ii, i, size); break;
+				case 3: ii = _flash512_chk(pbuf, ii, i); break;
+				case 4: ii = _flash_chk(pbuf, ii, i); break;
+				case 5: ii = _flash1M_chk(pbuf, ii, i); break;
 			}
 		}
 //		if(PatchCnt > 1 && cnt == PatchCnt)
 //			break;
 	}
 }
-
 
 u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
 	u32	i, ii;
@@ -929,39 +913,32 @@ u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
 
 		for(ii = 0; ii < bufsize / 4; ii++) {
 
-			if(SaveType == 0) {
-				ii = _type_chk(pbuf, ii, i);
-			}
-			if(SaveType == 8)	break;
+			if(SaveType == 0)ii = _type_chk(pbuf, ii, i);
+			if(SaveType == 8)break;
 
 			if(oldtype == 0 || oldtype == 2) {
 				ii = _eeprom_chk(pbuf, ii, i, size);
-				if(oldtype == 0)
-					oldtype = PatchType[PatchCnt-1]/0x10;
+				if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
 			}
 
 			if(oldtype == 0 || oldtype == 3) {
 				ii = _flash512_chk(pbuf, ii, i);
-				if(oldtype == 0)
-					oldtype = PatchType[PatchCnt-1]/0x10;
+				if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
 			}
 
 			if(oldtype == 0 || oldtype == 4) {
 				ii = _flash_chk(pbuf, ii, i);
-				if(oldtype == 0)
-					oldtype = PatchType[PatchCnt-1]/0x10;
+				if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
 			}
 
 			if(oldtype == 0 || oldtype == 5) {
 				ii = _flash1M_chk(pbuf, ii, i);
-				if(oldtype == 0)
-					oldtype = PatchType[PatchCnt-1]/0x10;
+				if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
 			}
 
 			if(oldtype == 0 || oldtype == 8) {
 				ii = _fmini_chk(pbuf, ii, i);
-				if(oldtype == 0)
-					oldtype = PatchType[PatchCnt-1]/0x10;
+				if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
 			}
 		}
 		if(SaveType == 0) {		// UNKNOWN Famicom Mini
@@ -995,20 +972,11 @@ u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
 
 		// cnt = PatchCnt;
 		for(ii = 0; ii < bufsize / 4; ii++) {
-			if(SaveType == 2) {
-				ii = _eeprom_chk(pbuf, ii, i, size);
-			}
-
-			if(SaveType == 3) {
-				ii = _flash512_chk(pbuf, ii, i);
-			}
-
-			if(SaveType == 4) {
-				ii = _flash_chk(pbuf, ii, i);
-			}
-
-			if(SaveType == 5) {
-				ii = _flash1M_chk(pbuf, ii, i);
+			switch (SaveType) {
+				case 2: ii = _eeprom_chk(pbuf, ii, i, size); break;
+				case 3: ii = _flash512_chk(pbuf, ii, i); break;
+				case 4: ii = _flash_chk(pbuf, ii, i); break;
+				case 5: ii = _flash1M_chk(pbuf, ii, i); break;
 			}
 
 		}

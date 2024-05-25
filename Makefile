@@ -9,7 +9,7 @@ export TARGET := GBA_ExpLoader
 export TOPDIR := $(CURDIR)
 
 export VERSION_MAJOR	:= 0
-export VERSION_MINOR	:= 61b
+export VERSION_MINOR	:= 62
 export VERSTRING	:=	$(VERSION_MAJOR).$(VERSION_MINOR)
 
 # GMAE_ICON is the image used to create the game icon, leave blank to use default rule

@@ -877,8 +877,11 @@ int writeFileToNor(int sel) {
 	
 	dsp_bar(1, 100);
 	fclose(gbaFile);
+		
+	if (is3in1Plus)chip_reset();
+		
 	CloseNorWrite();
-
+	
 //	getSaveFilename(sel, savName);
 	if(cmd >= 0) { writeSramFromFile(savName); } else {	blankSRAM(savName);	}
 
@@ -1053,7 +1056,6 @@ bool nameEndsWith (const string& name, const string& extension) {
 	return false;
 }
 
-// TODO: Fix Filelist to use new code based on port of NDS_Backup_Tool
 void FileListGBA() {
 	DIR	*dir;
 	struct stat	st;

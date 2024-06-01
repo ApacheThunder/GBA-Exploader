@@ -861,7 +861,7 @@ int gba_sel() {
 
 		if(ky & KEY_X) {
 			if(GBAmode == 1) {
-				SetRompage(0);
+				if (!is3in1Plus)SetRompage(0);
 				SetRampage(16);
 				gbaMode();
 			} else {
@@ -873,8 +873,7 @@ int gba_sel() {
 			if(GBAmode == 1) {
 				if(checkSRAM(filename)) {
 //					if(cnf_inp(3, 4) & KEY_A)
-					if(save_sel(0, filename) >= 0)
-						writeSramFromFile(filename);
+					if(save_sel(0, filename) >= 0)writeSramFromFile(filename);
 					_gba_sel_dsp(sel, yc, 0);
 				} else	err_cnf(4, 5);
 			} else {
@@ -1130,6 +1129,9 @@ inp_key();
 //---------------------------------------------------------------------------------
 int main(void) {
 //---------------------------------------------------------------------------------
+	extern u64 *fake_heap_end;
+	*fake_heap_end = 0;
+	
 	defaultExceptionHandler();
 	
 	int	i;

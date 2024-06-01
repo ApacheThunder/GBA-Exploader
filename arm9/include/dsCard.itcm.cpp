@@ -381,8 +381,8 @@ void WriteNorFlashINTEL(u32 address,u8 *buffer,u32 size) {
 		OpenNorWrite();
 	}
 	
-	if(size>0x4000) {
-		size2 = size >>1;
+	if(size > 0x4000) {
+		size2 = size >> 1;
 		lop = 2; 
 	} else {
 		size2 = size;

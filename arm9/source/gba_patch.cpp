@@ -5,6 +5,7 @@
 
 #include "gba_patch.h"
 #include "GBA_ini.h"
+#include "dscard.h"
 
 #define	PATCH_VER	5
 
@@ -20,6 +21,7 @@ u32	PatchAddr[28];
 u8 *RemainPtr;
 u32 RemainByte;
 
+extern bool isOmega;
 
 static	int _type_chk(u32 *pbuf, u32 c, u32 ofs) {
 	switch(pbuf[c]) {
@@ -889,8 +891,7 @@ u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
 
 //	if(SaveType != 0)
 //		return(SaveSize);
-	if(PatchVer == PATCH_VER)
-		return(SaveSize);
+	if(PatchVer == PATCH_VER)return(SaveSize);
 
 	dsp_bar(3, -1);
 
@@ -1728,7 +1729,21 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 	fmini = 124;
 
 	for(i = 1; i < PatchCnt; i++) {
+		
 		buf = (u8*)(exp + PatchAddr[i]);
+		
+		
+		// EZ Flash Omega and it's silly mapping schemes.... :P
+		if (isOmega) {
+			if ((exp + PatchAddr[i]) > 0x09000000 && (exp + PatchAddr[i]) < 0x09800000) {
+				SetPSRampage(0x1000);
+			} else if ((exp + PatchAddr[i]) > 0x0A000000 && (exp + PatchAddr[i]) < 0x0A800000) {
+				SetPSRampage(0x2000);
+			} else if ((exp + PatchAddr[i]) > 0x0B000000 && (exp + PatchAddr[i]) < 0x0B800000) {
+				SetPSRampage(0x3000);
+			}
+		}
+		
 		switch(SaveType) {
 			case 2:			// EEPROM
 				if(PatchType[i] == 0x21)_patch_ram(buf, ofs, patch_eeprom_1, sizeof(patch_eeprom_1));
@@ -1939,6 +1954,7 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 				break;
 		}
 	}
+	if (isOmega)SetPSRampage(0);
 }
 
 

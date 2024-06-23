@@ -16,7 +16,12 @@
 extern "C" {
 #endif
 
+#define NOR_info_offset 0x7A0000
+#define SET_info_offset 0x7B0000
+
 static u32 ID = 0x227E2218;
+
+u16 gl_ingame_RTC_open_status = 0;
 
 static bool checkForSuperCard() {
 	_SC_changeMode(SC_MODE_RAM);	// Try again with SuperCard
@@ -68,6 +73,67 @@ void SetRompage(u16 page) {
 	*(vu16*)0x9fc0000 = 0x1500;
 }
 
+
+// EZ Flash Omega only
+void SetSDControl(u16 control) {
+	*(u16 *)0x9fe0000 = 0xd200;
+	*(u16 *)0x8000000 = 0x1500;
+	*(u16 *)0x8020000 = 0xd200;
+	*(u16 *)0x8040000 = 0x1500;
+	*(u16 *)0x9400000 = control;
+	*(u16 *)0x9fc0000 = 0x1500;
+}
+
+void Set_AUTO_save(u16 mode) {
+	*(u16*)0x9fe0000 = 0xd200;
+	*(u16*)0x8000000 = 0x1500;
+	*(u16*)0x8020000 = 0xd200;
+	*(u16*)0x8040000 = 0x1500;
+	*(u16*)0x96C0000 = mode;
+	*(u16*)0x9fc0000 = 0x1500;
+}
+
+u16 Read_S71NOR_ID() {
+	*((vu16*)(FlashBase)) = 0xF0;	
+	*((vu16*)(FlashBase+0x555*2)) = 0xAA;
+	*((vu16*)(FlashBase+0x2AA*2)) = 0x55;
+	*((vu16*)(FlashBase+0x555*2)) = 0x90;
+	u16 ID1 = *((vu16*)(FlashBase+0xE*2));
+	*((vu16*)(FlashBase)) = 0xF0;
+	return ID1;
+}	
+
+u16 Read_S98NOR_ID() {
+	*((vu16*)(FlashBase_S98)) = 0xF0;	
+	*((vu16*)(FlashBase_S98+0x555*2)) = 0xAA;
+	*((vu16*)(FlashBase_S98+0x2AA*2)) = 0x55;
+	*((vu16*)(FlashBase_S98+0x555*2)) = 0x90;
+	return *((vu16*)(FlashBase_S98+0xE*2));
+}
+
+// EZFlash Omega uses this
+void SetPSRampage(u16 page) {
+	*(vu16*)0x9fe0000 = 0xd200;
+	*(vu16*)0x8000000 = 0x1500;
+	*(vu16*)0x8020000 = 0xd200;
+	*(vu16*)0x8040000 = 0x1500;
+	*(vu16*)0x9860000 = page; //C3
+	*(vu16*)0x9fc0000 = 0x1500;
+}
+
+u16 Read_SET_info(u32 offset) { return *((vu16 *)(FlashBase+SET_info_offset+offset*2)); }
+
+// EZFlash Omega RTC thingy
+void Set_RTC_status(u16 status) {
+	*(u16*)0x9fe0000 = 0xd200;
+	*(u16*)0x8000000 = 0x1500;
+	*(u16*)0x8020000 = 0xd200;
+	*(u16*)0x8040000 = 0x1500;
+	*(u16*)0x96A0000 = status;
+	*(u16*)0x9fc0000 = 0x1500;
+}
+
+
 void SetRampage(u16 page) {
 	*(vu16*)0x9fe0000 = 0xd200;
 	*(vu16*)0x8000000 = 0x1500;
@@ -116,10 +182,25 @@ u32 ReadNorFlashID() {
 	id1 = *((vu16*)(FlashBase+0x2));
 	id2 = *((vu16*)(FlashBase+0x2002));
 	
+	/*FILE *testFile = fopen("/gbacardID.bin", "wb");
+	if (testFile) {
+		fwrite((void*)(FlashBase+0x2), 2, 1, testFile);
+		fwrite((void*)(FlashBase+0x2002), 2, 1, testFile);
+		fclose(testFile);
+	}*/
+	
+	
 	if ((id1 != 0x227E) || (id2 != 0x227E)) {
 		if (checkForSuperCard()) {
 			ID = 0x227E2202;
 			return 0x227E0000;
+		}
+		// Check For EZ Flash Omega
+		SetRompage(0x8002);
+		id1 = Read_S98NOR_ID();
+		if ((id1 == 0x223D)) {
+			ID = 0x227EEA00;
+			return 0x227EEA00;
 		}
 		return 0;
 	}
@@ -149,7 +230,10 @@ u32 ReadNorFlashID() {
 }
 
 void chip_reset() {
-	if(ID == 0x89168916) {
+	if (ID == 0x227EEA00) {
+		*((vu16*)(FlashBase_S98)) = 0xF0;
+		return;
+	} else if(ID == 0x89168916) {
 		*((vu16*)(FlashBase+0)) = 0x50;
 		*((vu16*)(FlashBase+0x1000*2)) = 0x50;
 		*((vu16*)(FlashBase+0)) = 0xFF;
@@ -403,8 +487,8 @@ void WriteNorFlashINTEL(u32 address,u8 *buffer,u32 size) {
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0xFF;
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0xE8;
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0xE8;
-			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0x70;
-			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0x70;
+			// *((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0x70;
+			// *((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0x70;
 			v1=v2=0;
 			while((v1!= 0x80) || (v2 != 0x80)) {
 				v1 = *((vu16 *)(FlashBase+mapaddress+(loopwrite>>1)));
@@ -485,6 +569,13 @@ void WriteNorFlash(u32 address,u8 *buffer,u32 size) {
 			} while(v1!=v2);
 		}
 	}	
+}
+
+void Omega_Bank_Switching(u8 bank) {
+	*((vu8 *)(SAVE_sram_base+0x5555)) = 0xAA ;
+	*((vu8 *)(SAVE_sram_base+0x2AAA)) = 0x55 ;
+	*((vu8 *)(SAVE_sram_base+0x5555)) = 0xB0 ;
+	*((vu8 *)(SAVE_sram_base+0x0000)) = bank ;	
 }
 
 void WriteSram(uint32 address, u8* data , uint32 size ) {	

@@ -46,15 +46,25 @@ typedef bool BOOL ;
 		
 		//下面是访问震动卡的函数
 #define FlashBase		0x08000000
-#define	_Ez5PsRAM 	0x08000000
+#define PSRAMBase_S98	0x08800000
+#define FlashBase_S98	0x09000000
+#define	_Ez5PsRAM 		0x08000000
+#define SAVE_sram_base	0x0E000000
 		void		OpenNorWrite();
 		void		CloseNorWrite();
-		void      SetRompage(u16 page);
+		void      	SetRompage(u16 page);
 		void 		SetRampage(u16 page);
-		void  	OpenRamWrite();
+		void		SetSDControl(u16 control);
+		void		Set_AUTO_save(u16 mode);
+		u16			Read_S71NOR_ID(); // For Reading EZFlash Omega ID
+		u16			Read_S98NOR_ID(); // For Reading EZFlash Omega ID
+		void		SetPSRampage(u16 page); // EZFlash Omega uses this instead of regular SetRamPage
+		void 		Set_RTC_status(u16 status); // EZFlash Omega RTC thingy
+		u16 		Read_SET_info(u32 offset);
+		void  		OpenRamWrite();
 		void 		CloseRamWrite();
-		void      SetSerialMode();
-		uint32   ReadNorFlashID();
+		void      	SetSerialMode();
+		uint32   	ReadNorFlashID();
 		void 		chip_reset();
 		void 		Block_EraseIntel(u32 blockAdd);
 		void 		Block_Erase(u32 blockAdd);
@@ -64,7 +74,9 @@ typedef bool BOOL ;
 		void 		WriteSram(uint32 address, u8* data , uint32 size );
 		void 		ReadSram(uint32 address, u8* data , uint32 size );
 		void 		SetShake(u16 data);
+		void		Omega_Bank_Switching(u8 bank);
 	#ifdef __cplusplus
 	}
 	#endif
 #endif
+

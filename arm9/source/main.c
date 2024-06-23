@@ -48,7 +48,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.62"
+#define VERSTRING "v0.63"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -68,6 +68,9 @@ bool softReset;
 extern int carttype;
 extern bool isSuperCard;
 extern bool is3in1Plus;
+extern bool isOmega;
+extern u16 gl_ingame_RTC_open_status;
+extern void SetSDControl(u16 control);
 
 u32 inp_key() {
 	u32	ky;
@@ -808,6 +811,7 @@ int gba_sel() {
 		if((ky & KEY_L) && !isSuperCard) {
 			if(GBAmode > 0) {
 				GBAmode--;
+				if ((GBAmode == 1) && isOmega)GBAmode--;
 				setGBAmode();
 				_gba_sel_dsp(sel, yc, 0);
 //				cmd = -1;
@@ -818,9 +822,13 @@ int gba_sel() {
 			if(softReset && (carttype > 2)) {
 				cmd = 3;
 				break;
-			}
+			} /*else if (softReset && isOmega) {
+				cmd = 3;
+				break;
+			}*/
 			if(GBAmode < cn && carttype <= 2) {
 				GBAmode++;
+				if ((GBAmode == 1) && isOmega)GBAmode++;
 				setGBAmode();
 				if(GBAmode == 2) {
 					_gba_dsp(sel, 0, x, y+yc);
@@ -861,7 +869,8 @@ int gba_sel() {
 
 		if(ky & KEY_X) {
 			if(GBAmode == 1) {
-				if (!is3in1Plus)SetRompage(0);
+				// if (!is3in1Plus)SetRompage(0);
+				SetRompage(0);
 				SetRampage(16);
 				gbaMode();
 			} else {
@@ -911,6 +920,7 @@ int gba_sel() {
 				}
 			} else {
 				if(GBAmode == 0) {
+					// if (is3in1Plus)SetRompage(0x100);
 //					SetRompage(384);
 					gbaMode();
 				}
@@ -1006,7 +1016,9 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 			break;
 		case 1: 
 			if (is3in1Plus) {
-				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Pls]", 0, 0, 0 ); 
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Pls]", 0, 0, 0 );
+			} else if (isOmega) {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ Omega ]", 0, 0, 0 );
 			} else {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
 			}
@@ -1037,12 +1049,15 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	ShinoPrint_SUB( SubScreen, 8*6, 5*12, (u8*)tbuf, 3, 0, 1);
 **********************/
 
-	// SuperCard does not support 3in1's Rumble commands. :P
-	if (isSuperCard) {
+	// SuperCard and EZFlash Omega does not support 3in1's Rumble commands. :P
+	/*if (isOmega) {
+		softReset = false;
+	} else */ if (isSuperCard) {
 		softReset = false;
 	} else {
 		softReset = ret_menu_chk();
 	}
+	
 
 /******************************
 	sprintf(tbuf, "0x27FFE18 = %08X", (*(vu32*)0x027FFE18));
@@ -1105,20 +1120,25 @@ inp_key();
 	*(vu8*)0x027FFC35 = 0x00;	// Šg’£
 	switch(cmd) {
 		case 0:
-			SetShake(0xF0);
+			if (!isSuperCard)SetShake(0xF0);
 			break;
 		case 1:
-			SetShake(0xF1);
+			if (!isSuperCard)SetShake(0xF1);
 			break;
 		case 2:
-			SetShake(0xF2);
+			if (!isSuperCard)SetShake(0xF2);
 			break;
 		case 3:
-			if(carttype != 4) {
-				SetRompage(0x300);
+			if((carttype != 4) && !isSuperCard && !isOmega) {
+				/*if (isOmega) {
+					Set_RTC_status(gl_ingame_RTC_open_status);
+					SetRompage(0x200);*/
+				// } else {
+				if (is3in1Plus) { SetRompage(0x100); } else { SetRompage(0x300); }
 				OpenNorWrite();
+				// }
 			}
-			RamClear();
+			if(!isSuperCard)RamClear();
 			break;
 	}
 

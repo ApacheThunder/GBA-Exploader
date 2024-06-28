@@ -10,7 +10,7 @@
 #include "dscard.h"
 #include "string.h"
 #include "io_sc_common.h"
-
+#include "tonccpy.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,6 +133,43 @@ void Set_RTC_status(u16 status) {
 	*(u16*)0x9fc0000 = 0x1500;
 }
 
+void rtc_toggle(bool enable) {
+	if (enable) { *RTC_ENABLE = 1; } else { *RTC_ENABLE = 0; }
+}
+
+void Omega_Bank_Switching(u8 bank) {
+	*((vu8*)(SRAM_ADDR_OMEGA+0x5555)) = 0xAA;
+	*((vu8*)(SRAM_ADDR_OMEGA+0x2AAA)) = 0x55;
+	*((vu8*)(SRAM_ADDR_OMEGA+0x5555)) = 0xB0;
+	*((vu8*)SRAM_ADDR_OMEGA)		  = bank;	
+}
+
+void SetbufferControl(u16 control) {
+	*(u16*)0x9fe0000 = 0xd200;
+	*(u16*)0x8000000 = 0x1500;
+	*(u16*)0x8020000 = 0xd200;
+	*(u16*)0x8040000 = 0x1500;
+	*(u16*)0x9420000 = control; //A1
+	*(u16*)0x9fc0000 = 0x1500;
+}
+
+static u32 FAT_table_buffer[0x400/4];
+
+void Omega_InitFatBuffer(BYTE saveMODE) {
+	toncset((void*)FAT_table_buffer, 0, (0x400/4));
+	FAT_table_buffer[2] = 0xFFFFFFFF;
+	// FAT_table_buffer[0x1F0/4] = 0; //size
+	FAT_table_buffer[0x1F4/4] = 0x2;  // 0x1 == rom copy to psram // 0x2 == copy mode
+	// FAT_table_buffer[0x1F8/4] = 0; // secort of cluster
+	// FAT_table_buffer[0x1FC/4] = (0x31<<24) | 0x20000;  // save mode and save file size
+	FAT_table_buffer[0x1FC/4] = (saveMODE<<24) | 0x10000;  // save mode and save file size
+	SetbufferControl(1);
+	// tonccpy((void*)0x9E00000, FAT_table_buffer, 0x400);
+	// dmaCopy(FAT_table_buffer, (void*)0x9E00000, 0x400);
+	tonccpy((void*)0x9E00000, FAT_table_buffer, 0x400);
+	SetbufferControl(3);	
+	SetbufferControl(0);
+}
 
 void SetRampage(u16 page) {
 	*(vu16*)0x9fe0000 = 0xd200;
@@ -188,15 +225,14 @@ u32 ReadNorFlashID() {
 		fwrite((void*)(FlashBase+0x2002), 2, 1, testFile);
 		fclose(testFile);
 	}*/
-	
-	
+		
 	if ((id1 != 0x227E) || (id2 != 0x227E)) {
 		if (checkForSuperCard()) {
 			ID = 0x227E2202;
 			return 0x227E0000;
 		}
 		// Check For EZ Flash Omega
-		SetRompage(0x8002);
+		SetRompage(0x8000);
 		id1 = Read_S98NOR_ID();
 		if ((id1 == 0x223D)) {
 			ID = 0x227EEA00;
@@ -507,7 +543,7 @@ void WriteNorFlashINTEL(u32 address,u8 *buffer,u32 size) {
 				v1 = *((vu16*)(FlashBase+mapaddress+(loopwrite>>1)));
 				v2 = *((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000));
 				if((v1==0x90) || (v2==0x90)) { // error response, hopefully this never actually happens?
-					WriteSram(0xA000000,(u8 *)buf,0x8000);
+					WriteSram(SRAM_ADDR,(u8 *)buf,0x8000);
 					while(1);
 					break;
 				}
@@ -571,21 +607,14 @@ void WriteNorFlash(u32 address,u8 *buffer,u32 size) {
 	}	
 }
 
-void Omega_Bank_Switching(u8 bank) {
-	*((vu8 *)(SAVE_sram_base+0x5555)) = 0xAA ;
-	*((vu8 *)(SAVE_sram_base+0x2AAA)) = 0x55 ;
-	*((vu8 *)(SAVE_sram_base+0x5555)) = 0xB0 ;
-	*((vu8 *)(SAVE_sram_base+0x0000)) = bank ;	
-}
-
-void WriteSram(uint32 address, u8* data , uint32 size ) {	
-	uint32 i ;
-	for(i=0;i<size;i++)*(u8*)(address+i)=data[i];
-}
-
-void ReadSram(uint32 address, u8* data , uint32 size ) {
+void WriteSram(uint32 address, u8* data, uint32 size) {	
 	uint32 i;
-	for(i=0;i<size;i++)data[i] = *(u8*)(address+i);
+	for(i = 0; i < size; i++)*(u8*)(address+i) = data[i];
+}
+
+void ReadSram(uint32 address, u8* data, uint32 size) {
+	uint32 i;
+	for(i = 0; i < size; i++)data[i] = *(u8*)(address + i);
 }
 
 void OpenRamWrite() {

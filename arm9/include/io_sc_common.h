@@ -48,6 +48,7 @@ extern "C" {
 
 extern void _SC_changeMode(u8 mode);
 extern void _SC_changeMode16(u16 mode);
+extern void twoByteCpy(u16 *dst, const u16 *src, u32 size);
 
 #ifdef __cplusplus
 }

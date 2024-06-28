@@ -882,9 +882,19 @@ int gba_sel() {
 			if(GBAmode == 1) {
 				if(checkSRAM(filename)) {
 //					if(cnf_inp(3, 4) & KEY_A)
-					if(save_sel(0, filename) >= 0)writeSramFromFile(filename);
+					if(save_sel(0, filename) >= 0) { 
+						dsp_bar(5, -1);
+						swiWaitForVBlank();
+						dsp_bar(5, 50);
+						writeSramFromFile(filename);
+						dsp_bar(5, 100);
+						for (int I = 0; I < 50; I++)swiWaitForVBlank();
+						dsp_bar(-1, 100);
+					}
 					_gba_sel_dsp(sel, yc, 0);
-				} else	err_cnf(4, 5);
+				} else {
+					err_cnf(4, 5);
+				}
 			} else {
 				if(cnf_inp(5, 6) & KEY_A) {
 					SRAMdump(1);
@@ -930,7 +940,15 @@ int gba_sel() {
 		if(ky & KEY_B) {
 			if(checkSRAM(filename)) {
 //				if(cnf_inp(1, 2) & KEY_A) {
-				if(save_sel(1, filename) >= 0)writeSramToFile(filename);
+				if(save_sel(1, filename) >= 0) {
+					dsp_bar(4, -1);
+					swiWaitForVBlank();
+					dsp_bar(4, 50);
+					writeSramToFile(filename);
+					dsp_bar(4, 100);
+					for (int I = 0; I < 50; I++)swiWaitForVBlank();
+					dsp_bar(-1, 100);
+				}
 				_gba_sel_dsp(sel, yc, 0);
 			} else {
 				err_cnf(4, 5);
@@ -1096,7 +1114,15 @@ inp_key();
 
 	GBAmode = 0;
 	if(checkSRAM(filename) && checkBackup()) {
+		dsp_bar(4, -1);
+		dsp_bar(4, 0);
+		for (int I = 0; I < 30; I++)swiWaitForVBlank();
 		if(save_sel(1, filename) >= 0)writeSramToFile(filename);
+		dsp_bar(4, 50);
+		for (int I = 0; I < 30; I++)swiWaitForVBlank();
+		dsp_bar(4, 100);
+		for (int I = 0; I < 30; I++)swiWaitForVBlank();
+		dsp_bar(-1, 100);
 	}
 
 	getGBAmode();

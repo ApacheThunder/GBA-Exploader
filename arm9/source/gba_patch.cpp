@@ -780,106 +780,11 @@ void gba_check_int(char *name) {
 	}
 }
 
-u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs) {
-	u32	i, ii;
-	u32	*pbuf;
-	u32	oldtype;
-
-
-//	if(SaveType != 0)
-//		return(SaveSize);
-	if(PatchVer == PATCH_VER)return(SaveSize);
-
-	pbuf = (u32*)buf;
-	if(PatchCnt > 1) { oldtype = PatchType[PatchCnt-1]/0x10; } else { oldtype = 0; }
-
-	i = ofs;
-	for(ii = 0; ii < bufsize / 4; ii++) {
-		ii = _type_chk(pbuf, ii, i);
-		if(SaveType == 8)break;
-
-		if(oldtype == 0 || oldtype == 2) {
-			ii = _eeprom_chk(pbuf, ii, i, size);
-			if(oldtype == 0)
-				oldtype = PatchType[PatchCnt-1]/0x10;
-		}
-
-		if(oldtype == 0 || oldtype == 3) {
-			ii = _flash512_chk(pbuf, ii, i);
-			if(oldtype == 0)
-				oldtype = PatchType[PatchCnt-1]/0x10;
-		}
-
-		if(oldtype == 0 || oldtype == 4) {
-			ii = _flash_chk(pbuf, ii, i);
-			if(oldtype == 0)
-				oldtype = PatchType[PatchCnt-1]/0x10;
-		}
-
-		if(oldtype == 0 || oldtype == 5) {
-			ii = _flash1M_chk(pbuf, ii, i);
-			if(oldtype == 0)
-				oldtype = PatchType[PatchCnt-1]/0x10;
-		}
-
-		if(oldtype == 0 || oldtype == 8) {
-			ii = _fmini_chk(pbuf, ii, i);
-			if(oldtype == 0)
-				oldtype = PatchType[PatchCnt-1]/0x10;
-		}
-	}
-	return(SaveSize);
-}
-
-
-static	void _ReadPSram(uint32 address, u8* data , uint32 size ) {
+static void _ReadPSram(uint32 address, u8* data, uint32 size) {
 	u32	i;
 	u16* pData = (u16*)data;
 	u16* sData = (u16*)address;
-
 	for(i = 0; i < size / 2; i++)pData[i] = sData[i];
-}
-
-void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
-	u32	i, ii;
-	u32	*pbuf;
-	// int	cnt;
-
-	switch (SaveType) {
-		case 0:	// UNKNOWN Famicom Mini
-			if(PatchCnt > 2 && PatchType[1] == 0x81 && PatchType[2] == 0x84) {
-				SaveType = 8;
-				PatchCnt = 3;
-				strcpy((char*)SaveVer, "FaMini");
-			}
-			break;
-		case 8:
-			PatchType[PatchCnt] = 0x86;	 // Patch
-			PatchAddr[PatchCnt] = 0x100000 - 0x800;
-			PatchCnt++;
-			break;
-	}
-
-	if(SaveType < 2 || PatchCnt <= 1 || SaveType == PatchType[1]/0x10)return;
-
-	pbuf = (u32*)buf;
-	PatchCnt = 1;
-	for(i = 0; i < size; i += bufsize, exp += bufsize) {
-		_ReadPSram(exp, buf, bufsize+0x400);
-//		dmaCopy((void *)exp, buf, bufsize);
-//		dmaCopyWords(3, buf, (void *)exp, 0x100000);
-		// cnt = PatchCnt;
-		for(ii = 0; ii < bufsize / 4; ii++) {
-			switch (SaveType) {
-				case 2: ii = _eeprom_chk(pbuf, ii, i, size); break;
-				case 3: ii = _flash512_chk(pbuf, ii, i); break;
-				case 4: ii = _flash_chk(pbuf, ii, i); break;
-				case 5: ii = _flash1M_chk(pbuf, ii, i); break;
-			}
-		}
-//		if(PatchCnt > 1 && cnt == PatchCnt)
-//			break;
-	}
 }
 
 u32 gba_check(FILE *gbaFile, u32 size, u8 *buf, u32 bufsize) {
@@ -1706,7 +1611,6 @@ static void _patch_write(char *name) {
 
 	fwrite(buf, 1, 256, sign);
 	fclose(sign);
-
 }
 
 void gba_patch_Ram(u32 exp, char *name, int cart) {
@@ -1728,20 +1632,31 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 
 	fmini = 124;
 
+	u8 _OmegaPage = 0;
+
 	for(i = 1; i < PatchCnt; i++) {
-		
-		buf = (u8*)(exp + PatchAddr[i]);
-		
-		
+
 		// EZ Flash Omega and it's silly mapping schemes.... :P
 		if (isOmega) {
-			if ((exp + PatchAddr[i]) > 0x09000000 && (exp + PatchAddr[i]) < 0x09800000) {
+			if ((exp + PatchAddr[i]) >= 0x08800000 && (exp + PatchAddr[i]) < 0x09000000) { 
+				SetPSRampage(0);
+				_OmegaPage = 0;
+			} else if ((exp + PatchAddr[i]) >= 0x09000000 && (exp + PatchAddr[i]) < 0x09800000) {
 				SetPSRampage(0x1000);
-			} else if ((exp + PatchAddr[i]) > 0x0A000000 && (exp + PatchAddr[i]) < 0x0A800000) {
+				_OmegaPage = 0x01;
+			} else if ((exp + PatchAddr[i]) >= 0x09800000 && (exp + PatchAddr[i]) < 0x0A000000) {
 				SetPSRampage(0x2000);
-			} else if ((exp + PatchAddr[i]) > 0x0B000000 && (exp + PatchAddr[i]) < 0x0B800000) {
+				_OmegaPage = 0x02;
+			} else if ((exp + PatchAddr[i]) >= 0x0A000000 && (exp + PatchAddr[i]) < 0x0A800000) {
 				SetPSRampage(0x3000);
+				_OmegaPage = 0x03;
 			}
+		}
+
+		if (isOmega) {
+			buf = (u8*)((exp + PatchAddr[i]) - (_OmegaPage * 0x00800000));
+		} else {
+			buf = (u8*)(exp + PatchAddr[i]);
 		}
 		
 		switch(SaveType) {
@@ -1796,8 +1711,7 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 			case 5:			// FLASH1M_V
 				if(PatchType[i] == 0x51) {
 					for(j = i + 1; j < PatchCnt; j++) {
-//						if(PatchType[j] == 0x56)
-//							savel = PatchAddr[j];
+//						if(PatchType[j] == 0x56)savel = PatchAddr[j];
 						if(PatchType[j] == 0x58)break;
 					}
 					if (j < PatchCnt)V102 = false;
@@ -1955,6 +1869,115 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 		}
 	}
 	if (isOmega)SetPSRampage(0);
+}
+
+u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs) {
+	u32	i, ii;
+	u32	*pbuf;
+	u32	oldtype;
+
+
+//	if(SaveType != 0)return(SaveSize);
+	if(PatchVer == PATCH_VER)return(SaveSize);
+
+	pbuf = (u32*)buf;
+	if(PatchCnt > 1) { oldtype = PatchType[PatchCnt-1]/0x10; } else { oldtype = 0; }
+
+	i = ofs;
+	for(ii = 0; ii < bufsize / 4; ii++) {
+		ii = _type_chk(pbuf, ii, i);
+		if(SaveType == 8)break;
+
+		if(oldtype == 0 || oldtype == 2) {
+			ii = _eeprom_chk(pbuf, ii, i, size);
+			if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
+		}
+
+		if(oldtype == 0 || oldtype == 3) {
+			ii = _flash512_chk(pbuf, ii, i);
+			if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
+		}
+
+		if(oldtype == 0 || oldtype == 4) {
+			ii = _flash_chk(pbuf, ii, i);
+			if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
+		}
+
+		if(oldtype == 0 || oldtype == 5) {
+			ii = _flash1M_chk(pbuf, ii, i);
+			if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
+		}
+
+		if(oldtype == 0 || oldtype == 8) {
+			ii = _fmini_chk(pbuf, ii, i);
+			if(oldtype == 0)oldtype = PatchType[PatchCnt-1]/0x10;
+		}
+	}
+	return(SaveSize);
+}
+
+void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
+	u32	i, ii;
+	u32	*pbuf;
+	// int	cnt;
+
+	switch (SaveType) {
+		case 0:	// UNKNOWN Famicom Mini
+			if(PatchCnt > 2 && PatchType[1] == 0x81 && PatchType[2] == 0x84) {
+				SaveType = 8;
+				PatchCnt = 3;
+				strcpy((char*)SaveVer, "FaMini");
+			}
+			break;
+		case 8:
+			PatchType[PatchCnt] = 0x86;	 // Patch
+			PatchAddr[PatchCnt] = 0x100000 - 0x800;
+			PatchCnt++;
+			break;
+	}
+
+	if(SaveType < 2 || PatchCnt <= 1 || SaveType == PatchType[1]/0x10)return;
+
+	pbuf = (u32*)buf;
+	PatchCnt = 1;
+	
+	u16 OmegaPage = 0;
+	
+	for(i = 0; i < size; i += bufsize, exp += bufsize) {
+		if (isOmega) {
+			if (exp >= 0x09000000) {
+				OmegaPage += 0x1000;
+				SetPSRampage(OmegaPage);
+				exp = PSRAMBase_S98;
+			}
+			/*if (exp >= 0x08800000 && exp < 0x09000000) { 
+				SetPSRampage(0);
+			} else if (exp >= 0x09000000 && exp < 0x09800000) {
+				SetPSRampage(0x1000);
+			} else if (exp >= 0x0A000000 && exp < 0x0A800000) {
+				SetPSRampage(0x2000);
+			} else if (exp >= 0x0B000000 && exp < 0x0B800000) {
+				SetPSRampage(0x3000);
+			}*/
+		}
+		// u32 currentAddress = exp;
+		// if (isOmega && currentAddress >= 0x08800000 && _OmegaPage != 0)currentAddress = (currentAddress - (_OmegaPage * 0x00800000));
+		_ReadPSram(exp, buf, bufsize+0x400);
+//		dmaCopy((void *)exp, buf, bufsize);
+//		dmaCopyWords(3, buf, (void *)exp, 0x100000);
+		// cnt = PatchCnt;
+		for(ii = 0; ii < bufsize / 4; ii++) {
+			switch (SaveType) {
+				case 2: ii = _eeprom_chk(pbuf, ii, i, size); break;
+				case 3: ii = _flash512_chk(pbuf, ii, i); break;
+				case 4: ii = _flash_chk(pbuf, ii, i); break;
+				case 5: ii = _flash1M_chk(pbuf, ii, i); break;
+			}
+		}
+//		if(PatchCnt > 1 && cnt == PatchCnt)
+//			break;
+		if (isOmega)SetPSRampage(0);
+	}
 }
 
 

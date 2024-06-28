@@ -25,6 +25,8 @@
 //#include <nds/arm9/rumble.h>
 
 #include "dsCard.h"
+#include "sc_patches.h"
+#include "sc_sram.h"
 
 //#include <nds/arm9/console.h> //basic print funcionality
 
@@ -34,7 +36,6 @@
 #define SRAM_PAGE_SIZE	0x1000	  	// SRAM Page Size
 #define MAX_SRAM	0x80000		// 4MBit/512KByte total SRAM
 
-#define	SRAM_ADDR	0x0A000000
 #define	USE_SRAM	0x20000		// 128KByte
 #define	USE_SRAM_PG		48		// 0x0A030000-0A031FFF
 #define	USE_SRAM_PG_EZ4		11		// 0x0A008000-0A00FFFF
@@ -45,7 +46,6 @@
 
 #define	USE_SRAM_NOR		16		// 0x0A010000-0A02FFFF
 
-#define	USE_SRAM_PSR_Omega	160		
 #define	USE_SRAM_PSR		50		// 0x0A032000-0A051FFF
 #define	USE_SRAM_PSR_EZ4	16		// 0x0A010000-0A02FFFF
 #define	USE_SRAM_PSR_EWN	 8		// 0x0A000000-0A01FFFF
@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern void turn_off(int cmd);
+extern void dsp_bar(int mod, int per);
 
 extern char curpath[];
 extern int sortfile[];
@@ -404,13 +406,22 @@ void _RamPG() {
 			SetM3Ram(USE_SRAM_PG_M3);
 			return;
 	}
-	SetRampage(USE_SRAM_PG);
+	if (isOmega) {
+		// Omega_Bank_Switching(0);
+		// SetRampage(0x20);
+		SetRampage(0x40);
+		// SetRampage(USE_SRAM_PG);
+		
+	} else {
+		SetRampage(USE_SRAM_PG);
+	}
+	// SetRampage(USE_SRAM_PG);
 	return;
 }
 
 void _RamSave(int bnk) {
 	if (isSuperCard)return;
-	if (isOmega)return;
+	// if (isOmega)return;
 	switch (carttype) {
 		case 3:
 			SetRampage(USE_SRAM_PSR_EZ4 + bnk * 16);
@@ -427,11 +438,17 @@ void _RamSave(int bnk) {
 
 	if(GBAmode == 0) {
 		if (isOmega) {
-			SetRampage(bnk * 16);
+			SetRampage(bnk * 0x10);
+			/*switch (bnk) {
+				case 0: SetRampage(0); break;
+				case 1: SetRampage(0x10); break;
+				default: return;
+			}*/
 		} else {
 			SetRampage(USE_SRAM_PSR + bnk * 16);
 		}
-	} else { 
+	} else {
+		if (isOmega)return;
 		SetRampage(USE_SRAM_NOR + bnk * 16);
 	}
 	return;
@@ -484,9 +501,9 @@ int checkFlashID() {
 			SetSDControl(0);
 			Set_RTC_status(1);
 			gl_ingame_RTC_open_status = Read_SET_info(13);
-			if( (gl_ingame_RTC_open_status != 0x0) && (gl_ingame_RTC_open_status != 0x1))gl_ingame_RTC_open_status = 0x1;
-			Omega_Bank_Switching(0);
-			Set_AUTO_save(0);
+			if ((gl_ingame_RTC_open_status != 0x0) && (gl_ingame_RTC_open_status != 0x1))gl_ingame_RTC_open_status = 0x1;
+			// Set_AUTO_save(0);
+			// Omega_Bank_Switching(0);
 			return carttype;
 		case 0x227E0000: // SuperCard
 			carttype = 6; 
@@ -641,13 +658,12 @@ bool checkBackup() {
 
 
 void writeSramToFile(char *savename) {
-	FILE	*saver;
+	FILE *saver;
 	u32	len;
 
 	if(savename[0] == 0) return;
 
-//	if((GBAmode == 0) && (checkBackup() == false))
-//		return;
+//	if((GBAmode == 0) && (checkBackup() == false))return;
 
 //	getSaveFilename(filename, tbuf);
 	sprintf(tbuf, "%s/%s", ini.save_dir, savename);
@@ -656,16 +672,17 @@ void writeSramToFile(char *savename) {
 //	OpenNorWrite();
 
 	_RamSave(0);
-
-	ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+	
+	if (isOmega) { ReadSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
+	
 	if(saver != NULL) {
 		len = USE_SRAM / 2;
 		if(len > savesize)len = savesize;
 		fwrite(rwbuf, 1, len, saver);
 	}
-	if(savesize > USE_SRAM / 2) {
+	if((savesize > (USE_SRAM / 2)) && !isSuperCard) {
 		_RamSave(1);
-		ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+		if (isOmega) { ReadSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
 		if(saver != NULL)fwrite(rwbuf, 1, USE_SRAM / 2, saver);
 	}
 	fclose(saver);
@@ -688,32 +705,63 @@ void SRAMdump(int cmd) {
 	mx = 8;
 	
 	switch (carttype) {
+		case 1: 
+			if (isOmega)mx = 2;
+			break;
 		case 4: mx = 4; break;
 		case 5: mx = 2; break;
-		case 6: mx = 16; break;
-	}
+		case 6:
+			if (isSuperCard) { mx = 1; } else { mx = 16; }
+			break;
+	}	
 	
 	sprintf(name, "%s/SRAM.BIN", ini.save_dir);
+		
 	if(cmd == 0) {
+		dsp_bar(4, -1);
 		dmp = fopen(name, "wb");
 		for(i = 0; i < mx; i++) {
-			if(carttype == 6) {
+			if(carttype == 6 && !isSuperCard) {
 				SetM3Ram(i);
-			} else {
-				if((carttype >= 4) && !isSuperCard) { 
+			} else if (!isSuperCard) {
+				if((carttype >= 4)) { 
 					SetEWINRam(8 + i); 
 				} else {
-					if (isOmega && (i > 4))Omega_Bank_Switching(0x01);
+					// if (isOmega && (i > 4))Omega_Bank_Switching(1);
 					SetRampage(i * 16);
 				}
 			}
-			ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+			
+			if (isOmega) { ReadSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { ReadSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
+
 			if(dmp != NULL)fwrite(rwbuf, 1, USE_SRAM / 2, dmp);
+			
+			if (i == 0) {
+				dsp_bar(4, 0);
+			} else {
+				switch (mx) {
+					case 2:
+						if (i == 1) { dsp_bar(4, 50); } else if (i == 2) { dsp_bar(4, 100); }
+						break;
+					case 4:
+						if (i == 1) { dsp_bar(4, 25); } else if (i == 2) { dsp_bar(4, 50); } else if (i == 3) { dsp_bar(4, 75); } else if (i == 4) { dsp_bar(4, 100); }
+						break;
+					case 8:
+						if (i == 2) { dsp_bar(4, 25); } else if (i == 4) { dsp_bar(4, 50); } else if (i == 6) { dsp_bar(4, 75); } else if (i == 8) { dsp_bar(4, 100); }
+						break;
+					case 16:
+						if (i == 4) { dsp_bar(4, 25); } else if (i == 8) { dsp_bar(4, 50); } else if (i == 12) { dsp_bar(6, 75); } else if (i == 16) { dsp_bar(8, 100); }
+					break;
+				}
+			}
 		}
 	} else {
+		dsp_bar(5, -1);
 		dmp = fopen(name, "rb");
 		if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
+		if (isOmega)Omega_Bank_Switching(0);
+		
 		for(i = 0; i < mx; i++) {
 			memset(rwbuf, 0, USE_SRAM / 2);
 			if(dmp != NULL)
@@ -724,18 +772,36 @@ void SRAMdump(int cmd) {
 				if((carttype >= 4) && !isSuperCard) {
 					SetEWINRam(8 + i);
 				} else {
-					if (isOmega && (i > 4))Omega_Bank_Switching(0x01);
+					// if (isOmega && (i > 4))Omega_Bank_Switching(1);
 					SetRampage(i * 16);
 				}
 			}
-			WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+			if (isOmega) { WriteSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
+			if (i == 0) {
+				dsp_bar(5, 0);
+			} else {
+				switch (mx) {
+					case 2:
+						if (i == 1) { dsp_bar(5, 50); } else if (i == 2) { dsp_bar(5, 100); }
+						break;
+					case 4:
+						if (i == 1) { dsp_bar(5, 25); } else if (i == 2) { dsp_bar(5, 50); } else if (i == 3) { dsp_bar(5, 75); } else if (i == 4) { dsp_bar(5, 100); }
+						break;
+					case 8:
+						if (i == 2) { dsp_bar(5, 25); } else if (i == 4) { dsp_bar(5, 50); } else if (i == 6) { dsp_bar(5, 75); } else if (i == 8) { dsp_bar(5, 100); }
+						break;
+					case 16:
+						if (i == 4) { dsp_bar(5, 25); } else if (i == 8) { dsp_bar(5, 50); } else if (i == 12) { dsp_bar(5, 75); } else if (i == 16) { dsp_bar(5, 100); }
+					break;
+				}
+			}
 		}
-
 		if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
 	}
 	fclose(dmp);
-	if (isOmega)Omega_Bank_Switching(0);
+	// if (isOmega)Omega_Bank_Switching(0);
 	_RamSave(0);
+	dsp_bar(-1, 100);
 }
 
 void blankSRAM(char *savename) {
@@ -745,11 +811,16 @@ void blankSRAM(char *savename) {
 	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
 	_RamSave(0);
-	WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+	
+	if (isOmega)Omega_Bank_Switching(0);
+	
+	if (isOmega) { WriteSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
 
 //	if(carttype != 5) {
-	_RamSave(1);
-	WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+	if (!isSuperCard) {
+		_RamSave(1);
+		if (isOmega) { WriteSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
+	}
 //	}
 
 	ctrl.save_siz[GBAmode] = savesize;
@@ -776,7 +847,6 @@ void writeSramFromFile(char *savename) {
 		return;
 	}
 
-
 	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
 	ctrl.save_siz[GBAmode] = savesize;
@@ -791,14 +861,17 @@ void writeSramFromFile(char *savename) {
 
 	memset(rwbuf, 0xFF, USE_SRAM / 2);
 	fread(rwbuf, 1, USE_SRAM / 2, saver);
-	WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+	
+	if (isOmega)Omega_Bank_Switching(0);
+	
+	if (isOmega) { WriteSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
 
 //	if(carttype != 5) {
-	if(savesize > USE_SRAM / 2) {
+	if((savesize > (USE_SRAM / 2)) && !isSuperCard) {
 		_RamSave(1);
 		memset(rwbuf, 0xFF, USE_SRAM / 2);
 		fread(rwbuf, 1, USE_SRAM / 2, saver);
-		WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2);
+		if (isOmega) { WriteSram(SRAM_ADDR_OMEGA, rwbuf, USE_SRAM / 2); } else { WriteSram(SRAM_ADDR, rwbuf, USE_SRAM / 2); }
 		_RamSave(0);
 	}
 //	}
@@ -809,7 +882,7 @@ void writeSramFromFile(char *savename) {
 }
 
 
-void _ReadPSram(uint32 address, u8* data , uint32 size) {
+/*void _ReadPSram(uint32 address, u8* data , uint32 size) {
 	u32	i;
 	u16* pData = (u16*)data;
 	u16* sData = (u16*)address;
@@ -817,17 +890,13 @@ void _ReadPSram(uint32 address, u8* data , uint32 size) {
 	for(i = 0; i < size / 2; i++)pData[i] = sData[i];
 }
 
-/*void _WritePSram(uint32 address, u8* data , uint32 size) {
+void _WritePSram(uint32 address, u8* data , uint32 size) {
 	u32	i;
 	u16* sData = (u16*)data;
 	u16* pData = (u16*)address;
 
 	for(i = 0; i < size / 2; i++)pData[i] = sData[i];
 }*/
-
-
-extern	void turn_off(int cmd);
-extern	void dsp_bar(int mod, int per);
 
 
 int writeFileToNor(int sel) {
@@ -912,8 +981,13 @@ int writeFileToNor(int sel) {
 		
 	CloseNorWrite();
 	
+	dsp_bar(5, -1);
 //	getSaveFilename(sel, savName);
 	if(cmd >= 0) { writeSramFromFile(savName); } else {	blankSRAM(savName);	}
+
+	dsp_bar(5, 100);
+	
+	for (int i = 0; i < 30; i++)swiWaitForVBlank();
 
 	dsp_bar(-1, 100);
 	//	SetRampage(USE_SRAM_NOR);
@@ -934,7 +1008,7 @@ int writeFileToRam(int sel) {
 
 	if (carttype >= 3) { fsz = MAX_NOR; } else if (isOmega) { fsz = MAX_NOR; } else { fsz = MAX_PSRAM; }
 
-	if (carttype >= 4) { exp = 0x08000000; } else if (isOmega) { exp = 0x08800000; } else { exp = 0x08060000; }
+	if (carttype >= 4) { exp = FlashBase; } else if (isOmega) { exp = PSRAMBase_S98; } else { exp = 0x08060000; }
 	
 	exps = exp;
 
@@ -949,7 +1023,7 @@ int writeFileToRam(int sel) {
 	sprintf(tbuf, "%s%s", curpath, fs[sel].filename);
 
 	gbaFile = fopen(tbuf, "rb");
-	if(gbaFile == NULL)	return(0);
+	if (gbaFile == NULL)return 0;
 
 	strcpy(savName, fs[sel].filename);
 	cmd = save_sel(0, savName);
@@ -977,18 +1051,18 @@ int writeFileToRam(int sel) {
 
 		if(siz == 0 && gba)header_rep(rwbuf);
 
-		savesize = gba_check_Ram1(rwbuf, 0x100000, fs[sel].filesize, siz);
-
+		if (!isOmega)savesize = gba_check_Ram1(rwbuf, 0x100000, fs[sel].filesize, siz);
+		
+		// EZ Flash Omega and it's silly mapping schemes.... :P
 		if (isOmega) {
 			if (exp >= 0x09000000) {
 				PSRamPage += 0x1000;
 				SetPSRampage(PSRamPage);
-				exp = 0x08800000;
+				exp = PSRAMBase_S98;
 			}
 		}
 
 		// _WritePSram(exp, rwbuf, 0x100000);
-		
 		dmaCopy((void*)rwbuf, (void*)exp, 0x100000);
 //		dmaCopyWords(3, rwbuf, (void *)exp, 0x100000);
 	}
@@ -998,9 +1072,32 @@ int writeFileToRam(int sel) {
 	if (isOmega)SetPSRampage(0);
 	
 	dsp_bar(2, 100);
-	gba_check_Ram2(exps, rwbuf, 0x100000, fs[sel].filesize);
-	gba_patch_Ram(exps, fs[sel].filename, carttype);
-
+		
+	bool allowPatches = true;
+		
+	if (isSuperCard) {
+		dsp_bar(-1, 100);
+		dsp_bar(3, -1);
+		dsp_bar(3, 25);
+		patchGeneralWhiteScreen(fs[sel].filesize);
+		allowPatches = patchSpecificGame();
+		dsp_bar(3, 50);
+		romSize = fs[sel].filesize;
+		const struct save_type* saveType = allowPatches ? save_findTag() : NULL;
+		dsp_bar(3, 75);
+		if (saveType != NULL && saveType->patchFunc != NULL)saveType->patchFunc(saveType);
+		dsp_bar(3, 100);
+		for (int I = 0; I < 50; I++)swiWaitForVBlank();
+		dsp_bar(-1, 100);
+	} else {
+		gba_check_Ram2(exps, rwbuf, 0x100000, fs[sel].filesize);
+		dsp_bar(-1, 100);
+	}
+	
+	dsp_bar(5, -1);
+	
+	if (!isSuperCard)gba_patch_Ram(exps, fs[sel].filename, carttype);
+	
 	fclose(gbaFile);
 
 	
@@ -1010,10 +1107,11 @@ int writeFileToRam(int sel) {
 //	}
 
 //	getSaveFilename(sel, savName);
+
+	dsp_bar(5, 50);
+	
 	if(cmd >= 0) { writeSramFromFile(savName); } else { blankSRAM(savName); }
-
-	dsp_bar(-1, 100);
-
+	
 	if((carttype < 4) && !isSuperCard && !isOmega)CloseNorWrite();
 
 	_RamSave(0);
@@ -1022,19 +1120,24 @@ int writeFileToRam(int sel) {
 		if(carttype == 6) { Close_M3(); } else { Close_EWIN(); }
 	}
 	
+	dsp_bar(5, 100);
+	
+	for (int i = 0; i < 30; i++)swiWaitForVBlank();
+	
+	dsp_bar(-1, 100);
+	
 	if (isSuperCard)return 0;
 	
 	if (isOmega) {
 		Set_RTC_status(gl_ingame_RTC_open_status);
+		rtc_toggle(true);
+		// Omega_InitFatBuffer(0x10);
 		SetRompage(0x200);
 		return 0;
 	}
 	
-	if(carttype == 3) {
-		SetRompage(0x300);
-	} else if(carttype <= 2) {
-		SetRompage(384);
-	}
+	if (carttype == 3) { SetRompage(0x300); } else if (carttype <= 2) { SetRompage(384); }
+	
 	return 0;
 }
 

@@ -5,7 +5,7 @@
 
 char *errmsg[16];
 char *cnfmsg[11];
-char *barmsg[4];
+char *barmsg[6];
 char *cmd_m[4];
 char *t_msg[22];
 char *savmsg[6];
@@ -78,18 +78,22 @@ static const char *cnfmsg_e[11] = {
 };
 
 
-static const char *barmsg_j[4] = {
+static const char *barmsg_j[6] = {
 	"  NORを消去中...  ",				// 0
 	" NORにコピー中... ",				// 1
 	" RAMにロード中... ",				// 2
-	"  ROMを解析中...  "				// 3
+	"  ROMを解析中...  ",				// 3
+	"  SRAMの読み取り  ",				// 4
+	"  SRAMへの書き込み  "				// 5
 };
 
-static const char *barmsg_e[4] = {
+static const char *barmsg_e[6] = {
 	"  Erasing NOR...   ",				// 0
 	" Copying to NOR... ",				// 1
 	" Loading to RAM... ",				// 2
-	" Analyzing ROM...  "				// 3
+	" Analyzing ROM...  ",				// 3
+	" Reading SRAM...  ",				// 4
+	" Writing SRAM...  "				// 5
 };
 
 
@@ -187,7 +191,7 @@ void setLangMsg() {
 	if(UserLang != 0) {
 		for(i = 0; i < 16; i++)errmsg[i] = (char*)errmsg_e[i];
 		for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_e[i];
-		for(i = 0; i < 4; i++)barmsg[i] = (char*)barmsg_e[i];
+		for(i = 0; i < 6; i++)barmsg[i] = (char*)barmsg_e[i];
 		for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_e[i];
 		for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_e[i];
 		for(i = 0; i < 6; i++)savmsg[i] = (char*)savmsg_e[i];
@@ -196,7 +200,7 @@ void setLangMsg() {
 
 	for(i = 0; i < 16; i++)errmsg[i] = (char*)errmsg_j[i];
 	for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_j[i];
-	for(i = 0; i < 4; i++)barmsg[i] = (char*)barmsg_j[i];
+	for(i = 0; i < 6; i++)barmsg[i] = (char*)barmsg_j[i];
 	for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_j[i];
 	for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_j[i];
 	for(i = 0; i < 6; i++)savmsg[i] = (char*)savmsg_j[i];

@@ -48,7 +48,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.63"
+#define VERSTRING "v0.64"
 
 int	numFiles = 0;
 int	numGames = 0;
@@ -434,6 +434,7 @@ int rumble_cmd() {
 		if(ky & KEY_A)	break;
 		if(ky & KEY_L) {
 			GBAmode = 1;
+			if (isOmega)GBAmode = 0;
 			setGBAmode();
 			cmd = -1;
 			break;
@@ -822,11 +823,7 @@ int gba_sel() {
 			if(softReset && (carttype > 2)) {
 				cmd = 3;
 				break;
-			} /*else if (softReset && isOmega) {
-				cmd = 3;
-				break;
-			}*/
-			if(GBAmode < cn && carttype <= 2) {
+			} else if(GBAmode < cn && carttype <= 2) {
 				GBAmode++;
 				if ((GBAmode == 1) && isOmega)GBAmode++;
 				setGBAmode();
@@ -842,13 +839,16 @@ int gba_sel() {
 
 
 		if(ky & KEY_START) {
-			if(softReset) {
+			if(softReset && !isOmega) {
 				cmd = 99;
 				if(carttype == 1) {
 					SetRompage(0);
 					SetRampage(16);
 				}
 				break;
+			} else if (isOmega && (GBAmode == 0)) {
+				SetRampage(0x8002);
+				gbaMode();
 			}
 		}
 		if(ky & KEY_SELECT) {
@@ -1007,10 +1007,10 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 	
 	if(isDSiMode()) { err_cnf(14, 15); turn_off(0); }
 
-	CloseNorWrite();
+	/*CloseNorWrite();
 	SetRompage(0);
 	SetRampage(16);
-	SetShake(0x08);
+	SetShake(0x08);*/
 
 
 /********
@@ -1036,7 +1036,7 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 			if (is3in1Plus) {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Pls]", 0, 0, 0 );
 			} else if (isOmega) {
-				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ Omega ]", 0, 0, 0 );
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ ƒ¶ DE ]", 0, 0, 0 );
 			} else {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
 			}
@@ -1098,7 +1098,7 @@ inp_key();
 	*(vu8*)0x027FFC35 = 0x01;	// GBA
 
 	rwbuf = (u8*)malloc(0x100000 + 1024);
-
+			
 	GBA_ini();
 
 	if(!checkSRAM_cnf() && (carttype != 5) && (cnf_inp(9, 10) & KEY_B))turn_off(softReset);
@@ -1117,12 +1117,16 @@ inp_key();
 		dsp_bar(4, -1);
 		dsp_bar(4, 0);
 		for (int I = 0; I < 30; I++)swiWaitForVBlank();
-		if(save_sel(1, filename) >= 0)writeSramToFile(filename);
-		dsp_bar(4, 50);
-		for (int I = 0; I < 30; I++)swiWaitForVBlank();
-		dsp_bar(4, 100);
-		for (int I = 0; I < 30; I++)swiWaitForVBlank();
-		dsp_bar(-1, 100);
+		if(save_sel(1, filename) >= 0) { 
+			writeSramToFile(filename);
+			dsp_bar(4, 50);
+			for (int I = 0; I < 30; I++)swiWaitForVBlank();
+			dsp_bar(4, 100);
+			for (int I = 0; I < 30; I++)swiWaitForVBlank();
+			dsp_bar(-1, 100);
+		} else {
+			dsp_bar(-1, 100);
+		}
 	}
 
 	getGBAmode();
@@ -1156,15 +1160,14 @@ inp_key();
 			break;
 		case 3:
 			if((carttype != 4) && !isSuperCard && !isOmega) {
-				/*if (isOmega) {
-					Set_RTC_status(gl_ingame_RTC_open_status);
-					SetRompage(0x200);*/
-				// } else {
-				if (is3in1Plus) { SetRompage(0x100); } else { SetRompage(0x300); }
-				OpenNorWrite();
-				// }
+				if (isOmega) {
+					SetRompage(0x8002);
+				} else {
+					if (is3in1Plus) { SetRompage(0x100); } else { SetRompage(0x300); }
+					OpenNorWrite();
+				}
 			}
-			if(!isSuperCard)RamClear();
+			if(!isSuperCard && !isOmega)RamClear();
 			break;
 	}
 

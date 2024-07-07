@@ -15,7 +15,7 @@ extern	u8	*rwbuf;
 extern u8 defaultSettings[];
 extern u8 defaultSettingsEnd[];
 
-void GBA_ini() {
+void GBA_ini() {	
 	FILE	*fini;
 	int	len, p, s;
 	char	key[20];
@@ -26,8 +26,6 @@ void GBA_ini() {
 
 	if(access("/GBA_ExpLoader.ini", F_OK) == 0) {
 		fini = fopen("/GBA_ExpLoader.ini", "rb");
-		if(access(ini.save_dir, F_OK) != 0)mkdir(ini.save_dir, 0777);
-		if(access(ini.sign_dir, F_OK) != 0)mkdir(ini.sign_dir, 0777);
 	} else {
 		fini = fopen("/GBA_ExpLoader.ini", "wb");
 		if (fini) {
@@ -120,19 +118,15 @@ void GBA_ini() {
 
 		while(p < len) {
 			p++;
-			if(rwbuf[p - 1] == 0x0A)
-				break;
+			if(rwbuf[p - 1] == 0x0A)break;
 		}
 	}
 
 	fclose(fini);
 
-	if(ini.save_dir[0] != '/')
-		strcpy(ini.save_dir, "/GBA_SAVE");
-	if(ini.sign_dir[0] != '/')
-		strcpy(ini.sign_dir, "/GBA_SIGN");
-
-	mkdir(ini.save_dir, 0777);
-	mkdir(ini.sign_dir, 0777);
+	if(ini.save_dir[0] != '/')strcpy(ini.save_dir, "/GBA_SAVE");
+	if(ini.sign_dir[0] != '/')strcpy(ini.sign_dir, "/GBA_SIGN");
+	if(access(ini.save_dir, F_OK) != 0)mkdir(ini.save_dir, 0777);
+	if(access(ini.sign_dir, F_OK) != 0)mkdir(ini.sign_dir, 0777);
 }
 

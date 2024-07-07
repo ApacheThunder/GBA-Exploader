@@ -21,15 +21,9 @@ extern "C" {
 
 static u32 ID = 0x227E2218;
 
-u16 gl_ingame_RTC_open_status = 0;
+static u32 FAT_table_buffer[0x400/4];
 
-static bool checkForSuperCard() {
-	_SC_changeMode(SC_MODE_RAM);	// Try again with SuperCard
-	// _SC_changeMode16(0x1510);
-	*(vu16*)(0x08000000) = 0x4D54;
-	if (*(vu16*)(0x08000000) == 0x4D54)return true;
-	return false;
-}
+u16 gl_ingame_RTC_open_status = 0;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //---------------------------------------------------
@@ -138,10 +132,10 @@ void rtc_toggle(bool enable) {
 }
 
 void Omega_Bank_Switching(u8 bank) {
-	*((vu8*)(SRAM_ADDR_OMEGA+0x5555)) = 0xAA;
+	*((vu8*)(SRAM_ADDR_OMEGA+0x5555)) = 0xAA; // SRAM_ADDR_OMEGA
 	*((vu8*)(SRAM_ADDR_OMEGA+0x2AAA)) = 0x55;
 	*((vu8*)(SRAM_ADDR_OMEGA+0x5555)) = 0xB0;
-	*((vu8*)SRAM_ADDR_OMEGA)		  = bank;	
+	*((vu8*)SRAM_ADDR_OMEGA)		  = bank;
 }
 
 void SetbufferControl(u16 control) {
@@ -153,23 +147,64 @@ void SetbufferControl(u16 control) {
 	*(u16*)0x9fc0000 = 0x1500;
 }
 
-static u32 FAT_table_buffer[0x400/4];
+u16 SD_Response(void) { return *(vu16*)0x9E00000; }
 
-void Omega_InitFatBuffer(BYTE saveMODE) {
-	toncset((void*)FAT_table_buffer, 0, (0x400/4));
+void Omega_InitFatBuffer(BYTE saveMODE, u32 saveSize, u32 gameSize) {
+	toncset((u32*)FAT_table_buffer, 0, 0x400);
+	// FAT_table_buffer[1] = 0; // sector location of game rom to be copies
 	FAT_table_buffer[2] = 0xFFFFFFFF;
-	// FAT_table_buffer[0x1F0/4] = 0; //size
+	// FAT_table_buffer[0x1F0/4] = gameSize; // rom copy size
 	FAT_table_buffer[0x1F4/4] = 0x2;  // 0x1 == rom copy to psram // 0x2 == copy mode
-	// FAT_table_buffer[0x1F8/4] = 0; // secort of cluster
-	// FAT_table_buffer[0x1FC/4] = (0x31<<24) | 0x20000;  // save mode and save file size
-	FAT_table_buffer[0x1FC/4] = (saveMODE<<24) | 0x10000;  // save mode and save file size
+	FAT_table_buffer[0x1F8/4] = 0x40; // secort of cluster
+	FAT_table_buffer[0x1FC/4] = ((saveMODE << 24) | saveSize);  // save mode and save file size
+	// FAT_table_buffer[0x204/4] = 0x363100; // Save file sector location
+	FAT_table_buffer[0x204/4] = 0x00C07644;
+	FAT_table_buffer[0x208/4] = 0xFFFFFFFF;
+	// FAT_table_buffer[0x308/4] = 0x100;	// RTS?
+	// FAT_table_buffer[0x320/4] = 0xFFFFFFFF; // RTS?
+	// FAT_table_buffer[0x210/4] = 0xFFFFFFFF;
+	// FAT_table_buffer[0x210/4] = 0xFFFFFFFF;
+	/*FILE *testFile = fopen("/fatTableTest.bin", "wb");
+	if (testFile) {
+		fwrite((void*)FAT_table_buffer, 0x400, 1, testFile);
+		fclose(testFile);
+	}*/
 	SetbufferControl(1);
-	// tonccpy((void*)0x9E00000, FAT_table_buffer, 0x400);
 	// dmaCopy(FAT_table_buffer, (void*)0x9E00000, 0x400);
-	tonccpy((void*)0x9E00000, FAT_table_buffer, 0x400);
-	SetbufferControl(3);	
-	SetbufferControl(0);
+	tonccpy((u16*)0x9E00000, (u32*)FAT_table_buffer, 0x400);
+	SetbufferControl(3);
+	SetbufferControl(0);	
+	/*SetbufferControl(0);
+	u16 res;
+	while(1) {
+		res = SD_Response();
+		if(res != 0)break;
+	}
+	
+	while(1) {
+		res = SD_Response();
+		if(res != 0x0001)break;
+	}
+	SetbufferControl(0);*/
 }
+
+u32 Omega_SetSaveSize(u8 SaveMode) {
+	switch (SaveMode) {
+		case OMEGA_NOSAVE: return 0;
+		case OMEGA_UNKNOWN: return 0x10000;
+		case OMEGA_EEPROM_512: return 0x200;
+		case OMEGA_EEPROM_8K: return 0x2000;
+		case OMEGA_EEPROM_V125: return 0x2000;
+		case OMEGA_FLASH_64K: return 0x10000;
+		case OMEGA_FLASH_512: return 0x10000;
+		case OMEGA_FLASH_1M: return 0x20000;
+		case OMEGA_SRAM_32K: return 0x8000;
+		case OMEGA_SRAM_64K: return 0x10000;
+		default: return 0;
+	}
+}
+
+
 
 void SetRampage(u16 page) {
 	*(vu16*)0x9fe0000 = 0xd200;
@@ -188,6 +223,29 @@ void SetSerialMode() {
 	*(vu16*)0x9A40000 = 0xe200;
 	*(vu16*)0x9fc0000 = 0x1500;
 }
+
+u32 CheckSuperCardID() {
+	SetRompage(0); // Prevent possible chain boot issue where previously booted app put card into similar mode to SuperCard if it's a card that responds to SetRompage.
+	_SC_changeMode(SC_MODE_RAM);	// Try again with SuperCard
+	// _SC_changeMode16(0x1510);
+	*(vu16*)(FlashBase) = 0x4D54;
+	if (*(vu16*)(FlashBase) == 0x4D54) {
+		ID = 0x227E2202;
+		return 0x227E0000;
+	}
+	return 0;
+}
+
+
+u32 CheckOmegaID() {
+	// Check For EZ Flash Omega
+	if (Read_S98NOR_ID() == 0x223D) {
+		ID = 0x227EEA00;
+		return 0x227EEA00;
+	}
+	return 0;
+}
+
 
 u32 ReadNorFlashID() {
 	vu16 id1, id2, id3, id4;
@@ -226,20 +284,7 @@ u32 ReadNorFlashID() {
 		fclose(testFile);
 	}*/
 		
-	if ((id1 != 0x227E) || (id2 != 0x227E)) {
-		if (checkForSuperCard()) {
-			ID = 0x227E2202;
-			return 0x227E0000;
-		}
-		// Check For EZ Flash Omega
-		SetRompage(0x8000);
-		id1 = Read_S98NOR_ID();
-		if ((id1 == 0x223D)) {
-			ID = 0x227EEA00;
-			return 0x227EEA00;
-		}
-		return 0;
-	}
+	if ((id1 != 0x227E) || (id2 != 0x227E))return 0;
 	
 	id1 = *((vu16*)(FlashBase+0xE*2));
 	id2 = *((vu16*)(FlashBase+0x100e*2));
@@ -267,7 +312,7 @@ u32 ReadNorFlashID() {
 
 void chip_reset() {
 	if (ID == 0x227EEA00) {
-		*((vu16*)(FlashBase_S98)) = 0xF0;
+		*((vu16*)0x08600000) = 0xF0;
 		return;
 	} else if(ID == 0x89168916) {
 		*((vu16*)(FlashBase+0)) = 0x50;

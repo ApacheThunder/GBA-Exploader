@@ -1551,10 +1551,26 @@ static void _patch_ram(u8 *buf, u32 ofs, const u8 *data, u32 size) {
 	u16	*pdata;
 	u32	i;
 
+	if (isOmega) {
+		u32 romAddress = (u32)buf;
+		if ((romAddress >= 0x08800000) && (romAddress < 0x09000000)) { 
+			SetPSRampage(0);
+		} else if ((romAddress >= 0x09000000) && (romAddress < 0x09800000)) {
+			SetPSRampage(0x1000);
+		} else if ((romAddress >= 0x09800000) && (romAddress < 0x0A000000)) {
+			SetPSRampage(0x2000);
+		} else if ((romAddress >= 0x0A000000) && (romAddress < 0x0A800000)) {
+			SetPSRampage(0x3000);
+		}
+	}
+
+
 	pbuf = (u16*)buf;
 	pdata = (u16*)data;
 
 	for(i = 0; i < size/2; i++, ofs++)pbuf[ofs] = pdata[i];
+	
+	SetPSRampage(0);
 }
 
 static void _patch(u8 *buf, u32 ofs, const u8 *data, u32 size, u32 bend) {
@@ -1632,12 +1648,12 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 
 	fmini = 124;
 
-	u8 _OmegaPage = 0;
+	// u8 _OmegaPage = 0;
 
 	for(i = 1; i < PatchCnt; i++) {
 
 		// EZ Flash Omega and it's silly mapping schemes.... :P
-		if (isOmega) {
+		/*if (isOmega) {
 			if ((exp + PatchAddr[i]) >= 0x08800000 && (exp + PatchAddr[i]) < 0x09000000) { 
 				SetPSRampage(0);
 				_OmegaPage = 0;
@@ -1651,13 +1667,11 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 				SetPSRampage(0x3000);
 				_OmegaPage = 0x03;
 			}
-		}
-
-		if (isOmega) {
 			buf = (u8*)((exp + PatchAddr[i]) - (_OmegaPage * 0x00800000));
 		} else {
 			buf = (u8*)(exp + PatchAddr[i]);
-		}
+		}*/
+		buf = (u8*)(exp + PatchAddr[i]);
 		
 		switch(SaveType) {
 			case 2:			// EEPROM
@@ -1868,7 +1882,7 @@ void gba_patch_Ram(u32 exp, char *name, int cart) {
 				break;
 		}
 	}
-	if (isOmega)SetPSRampage(0);
+	// if (isOmega)SetPSRampage(0);
 }
 
 u32 gba_check_Ram1(u8 *buf, u32 bufsize, u32 size, u32 ofs) {
@@ -1950,18 +1964,8 @@ void gba_check_Ram2(u32 exp, u8 *buf, u32 bufsize, u32 size) {
 				SetPSRampage(OmegaPage);
 				exp = PSRAMBase_S98;
 			}
-			/*if (exp >= 0x08800000 && exp < 0x09000000) { 
-				SetPSRampage(0);
-			} else if (exp >= 0x09000000 && exp < 0x09800000) {
-				SetPSRampage(0x1000);
-			} else if (exp >= 0x0A000000 && exp < 0x0A800000) {
-				SetPSRampage(0x2000);
-			} else if (exp >= 0x0B000000 && exp < 0x0B800000) {
-				SetPSRampage(0x3000);
-			}*/
 		}
 		// u32 currentAddress = exp;
-		// if (isOmega && currentAddress >= 0x08800000 && _OmegaPage != 0)currentAddress = (currentAddress - (_OmegaPage * 0x00800000));
 		_ReadPSram(exp, buf, bufsize+0x400);
 //		dmaCopy((void *)exp, buf, bufsize);
 //		dmaCopyWords(3, buf, (void *)exp, 0x100000);

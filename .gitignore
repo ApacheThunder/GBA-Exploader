@@ -41,6 +41,7 @@
 *.arm9
 *.elf
 *.dldi
+*.sav
 build
 data
 title

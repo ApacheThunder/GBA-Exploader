@@ -42,6 +42,7 @@
 #include "ctrl_tbl.h"
 #include "skin.h"
 #include "message.h"
+#include "tonccpy.h"
 
 extern uint16* MainScreen;
 extern uint16* SubScreen;
@@ -109,32 +110,33 @@ void turn_off(bool softReset) {
 
 void gba_frame() {
 	int	ret;
-	int	x=0, y=0;
-	u16	*pDstBuf1;
-	u16	*pDstBuf2;
-	
+	int mode = 3; // old mode == 2
+	// int	x = 0, y = 0;
+	// u16	*pDstBuf1;
+	// u16	*pDstBuf2;
+
 	if (access("/gbaframe.bmp", F_OK) == 0) {
-		ret = LoadSkin(2, "/gbaframe.bmp");
+		ret = LoadSkin(mode, "/gbaframe.bmp");
 		if(ret)return;
 	}
 
 	sprintf(tbuf, "%s/gbaframe.bmp", ini.sign_dir);
 	if (access(tbuf, F_OK) == 0) {
-		ret = LoadSkin(2, tbuf);
+		ret = LoadSkin(mode, tbuf);
 		if(ret)return;
 	}
 
 	if (access("/_system_/gbaframe.bmp", F_OK) == 0) {
-		ret = LoadSkin(2, "/_system_/gbaframe.bmp");
+		ret = LoadSkin(mode, "/_system_/gbaframe.bmp");
 		if(ret)return;
 	}
 	
 	if (access("/ttmenu/gbaframe.bmp", F_OK) == 0) {
-		ret = LoadSkin(2, "/ttmenu/gbaframe.bmp");
+		ret = LoadSkin(mode, "/ttmenu/gbaframe.bmp");
 		if(ret)return;
 	}
 
-	pDstBuf1 = (u16*)0x06000000;
+	/*pDstBuf1 = (u16*)0x06000000;
 	pDstBuf2 = (u16*)0x06020000;
 	for(y = 0; y < 192; y++) {
 		for(x = 0; x < 256; x++) {
@@ -143,7 +145,7 @@ void gba_frame() {
 		}
 		pDstBuf1 += 256;
 		pDstBuf2 += 256;
-	}
+	}*/
 }
 
 static void resetToSlot2() {
@@ -168,10 +170,28 @@ void gbaMode() {
 
 	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0)resetToSlot2();
 
-	videoSetMode(0);
-	videoSetModeSub(0);
+	// videoSetMode(0);
+	// videoSetModeSub(0);
 
-	vramSetPrimaryBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
+	// vramSetPrimaryBanks(VRAM_A_MAIN_BG, VRAM_B_MAIN_BG, VRAM_C_MAIN_BG, VRAM_D_MAIN_BG);
+
+	videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
+	videoSetModeSub(MODE_5_2D | DISPLAY_BG3_ACTIVE);
+	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
+	vramSetBankB(VRAM_B_MAIN_BG_0x06020000);
+	vramSetBankC(VRAM_C_SUB_BG_0x06200000);
+	vramSetBankD(VRAM_D_LCD);
+	// for the main screen
+	REG_BG3CNT = BG_BMP16_256x256 | BG_BMP_BASE(0) | BG_WRAP_OFF;
+	REG_BG3PA = 1 << 8; //scale x
+	REG_BG3PB = 0; //rotation x
+	REG_BG3PC = 0; //rotation y
+	REG_BG3PD = 1 << 8; //scale y
+	REG_BG3X = 0; //translation x
+	REG_BG3Y = 0; //translation y*/
+	toncset((void*)BG_BMP_RAM(0),0,0x18000);
+	toncset((void*)BG_BMP_RAM(8),0,0x18000);
+	swiWaitForVBlank();
 
 	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
 
@@ -180,6 +200,7 @@ void gbaMode() {
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	fifoSendValue32(FIFO_USER_01, 1);
 	REG_IME = 0;
+	irqDisable(IRQ_VBLANK);
 	while(1)swiWaitForVBlank();
 } 
 
@@ -847,7 +868,7 @@ int gba_sel() {
 				}
 				break;
 			} else if (isOmega && (GBAmode == 0)) {
-				SetRampage(0x8002);
+				SetRompage(0x8002);
 				gbaMode();
 			}
 		}

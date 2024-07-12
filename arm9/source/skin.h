@@ -2,8 +2,9 @@
 extern "C" {
 #endif
 
-extern bool LoadSkin(int mod, char *Name);
+extern bool LoadSkin(int mode, const char *Name);
 
 #ifdef __cplusplus
 }
 #endif
+

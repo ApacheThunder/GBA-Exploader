@@ -315,7 +315,7 @@ void chip_reset() {
 		*((vu16*)0x08600000) = 0xF0;
 		return;
 	} else if(ID == 0x89168916) {
-		*((vu16*)(FlashBase+0)) = 0x50;
+		// *((vu16*)(FlashBase+0)) = 0x50;
 		*((vu16*)(FlashBase+0x1000*2)) = 0x50;
 		*((vu16*)(FlashBase+0)) = 0xFF;
 		*((vu16*)(FlashBase+0x1000*2)) = 0xFF;
@@ -568,6 +568,7 @@ void WriteNorFlashINTEL(u32 address,u8 *buffer,u32 size) {
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0xFF;
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0xE8;
 			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0xE8;
+			// Disabling this fixes X button reset bug with 3in1 Plus.
 			// *((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0x70;
 			// *((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0x70;
 			v1=v2=0;
@@ -593,6 +594,9 @@ void WriteNorFlashINTEL(u32 address,u8 *buffer,u32 size) {
 					break;
 				}
 			}
+			// Adding this fixes 3in1 Plus reset bug with X button.
+			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1))) = 0xFF;
+			*((vu16*)(FlashBase+mapaddress+(loopwrite>>1)+0x2000)) = 0xFF;
 		}
 	}
 	if(b512) {

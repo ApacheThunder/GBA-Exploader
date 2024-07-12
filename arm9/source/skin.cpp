@@ -283,7 +283,7 @@ static bool intLoadBM(const char *bmpfn,u16 *pbm,const u32 bmw,const u32 bmh) {
 
 ALIGN(4) static u16 *pBuf;
 
-bool LoadSkin(int mod, char *Name) {
+bool LoadSkin(int mode, const char *Name) {
 	
 	u16	*pDstBuf1;
 	u16	*pDstBuf2;
@@ -291,7 +291,7 @@ bool LoadSkin(int mod, char *Name) {
 	pBuf = (u16*)malloc(256*192*2);
 	if(!intLoadBM(Name, pBuf, 256, 192)) { free(pBuf); return false; }
 
-	switch (mod) {
+	switch (mode) {
 		case 0: pDstBuf1 = (u16*)0x06020000; break;
 		case 1: pDstBuf1 = (u16*)0x06220000; break;
 		case 2:
@@ -300,19 +300,22 @@ bool LoadSkin(int mod, char *Name) {
 			// pDstBuf1 = (u16*)0x06800000;
 			// pDstBuf2 = (u16*)0x06820000;
 			break;
+		case 3: {
+			pDstBuf1 = BG_BMP_RAM(0);
+			pDstBuf2 = BG_BMP_RAM(8);
+		} break;
 		default: pDstBuf1 = (u16*)0x06020000; break;
 	}
 
-	for(s32 y=0;y<192;y++) {
-		for(s32 x=0;x<256;x++) {
-			pDstBuf1[x]=pBuf[x];
-			if(mod == 2)pDstBuf2[x]=pBuf[x];
+	for (s32 y = 0; y < 192; y++) {
+		for (s32 x = 0; x < 256; x++) {
+			pDstBuf1[x] = pBuf[x];
+			if ((mode == 2) || (mode == 3))pDstBuf2[x] = pBuf[x];
 		}
-		pDstBuf1+=256;
-		if(mod == 2)pDstBuf2+=256;
-		pBuf+=256;
+		pDstBuf1 += 256;
+		if ((mode == 2) || (mode == 3))pDstBuf2 += 256;
+		pBuf += 256;
 	}
-
 	// free(pBuf);
 	return true;
 }

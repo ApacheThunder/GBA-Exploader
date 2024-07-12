@@ -18,3 +18,4 @@ extern	char *jstrncpy(char *s1, char *s2, size_t n);
 #ifdef __cplusplus
 }
 #endif
+

@@ -537,12 +537,12 @@ int checkSRAM(char *name) {
 		if(ctrl.sign[i] != Rudolph[i])break;
 	}
 
-	if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)OpenNorWrite();
+	// if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)OpenNorWrite();
 
 	if(Rudolph[i] != 0) {
 		strcpy((char *)ctrl.sign, Rudolph);
 		ctrl_set();
-		if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
+		// if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
 		return false;
 	}
 
@@ -562,11 +562,11 @@ int checkSRAM(char *name) {
 		savesize = 0x10000;
 		ctrl.save_siz[GBAmode] = savesize;
 		ctrl_set();
-		if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
+		// if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
 		return false;
 	}
 
-	if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
+	// if((carttype < 4) && !isSuperCard && !is3in1Plus && !isOmega)CloseNorWrite();
 	return true;
 }
 
@@ -719,7 +719,7 @@ void SRAMdump(int cmd) {
 	} else {
 		dsp_bar(5, -1);
 		dmp = fopen(name, "rb");
-		if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
+		// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 		
 		if (isOmega)Omega_Bank_Switching(0);
 		
@@ -760,7 +760,7 @@ void SRAMdump(int cmd) {
 				}
 			}
 		}
-		if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
+		// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
 	}
 	fclose(dmp);
 	_RamSave(0);
@@ -771,7 +771,7 @@ void blankSRAM(char *savename) {
 
 	memset(rwbuf, 0xFF, USE_SRAM / 2);
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
 	if (isOmega)Omega_Bank_Switching(0);
 	
@@ -792,7 +792,7 @@ void blankSRAM(char *savename) {
 	strcpy((char *)ctrl.sav_nam[GBAmode], savename);
 	ctrl_set();
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
 }
 
 void writeSramToFile(char *savename) {
@@ -827,11 +827,11 @@ void writeSramToFile(char *savename) {
 
 	ctrl.save_flg[GBAmode] = 0xFF;
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
 	ctrl_set();
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
 }
 
 void writeSramFromFile(char *savename) {	
@@ -849,7 +849,7 @@ void writeSramFromFile(char *savename) {
 		return;
 	}
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
 	ctrl.save_siz[GBAmode] = savesize;
 	ctrl.save_flg[GBAmode] = 0x00;
@@ -878,7 +878,7 @@ void writeSramFromFile(char *savename) {
 	}
 //	}
 
-	if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
+	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)CloseNorWrite();
 
 	fclose(saver);
 }
@@ -979,11 +979,10 @@ int writeFileToNor(int sel) {
 	dsp_bar(1, 100);
 	fclose(gbaFile);
 
-	// if (is3in1Plus)chip_reset();
-		
 	CloseNorWrite();
 	
 	dsp_bar(5, -1);
+		
 //	getSaveFilename(sel, savName);
 	if(cmd >= 0) { writeSramFromFile(savName); } else {	blankSRAM(savName);	}
 
@@ -992,8 +991,8 @@ int writeFileToNor(int sel) {
 	for (int i = 0; i < 30; i++)swiWaitForVBlank();
 
 	dsp_bar(-1, 100);
-	//	SetRampage(USE_SRAM_NOR);
-	return(0);
+//	SetRampage(USE_SRAM_NOR);	
+	return 0;
 }
 
 

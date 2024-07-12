@@ -567,7 +567,7 @@ static const struct save_type sSaveTypes[SAVE_TYPE_COUNT] = {
 };
 
 const struct save_type* save_findTag() {
-	u32  curAddr = 0x080000C0;
+	u32 curAddr = 0x080000C0;
 	char saveTag[16];
 	while (curAddr < 0x08000000+romSize) {
 		u32 fst = *(u32*)curAddr;

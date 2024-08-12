@@ -43,18 +43,20 @@
 #include "skin.h"
 #include "message.h"
 #include "tonccpy.h"
+#include "nds_loader_arm9.h"
 
 extern uint16* MainScreen;
 extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.64"
+#define VERSTRING "v0.65"
 
 int	numFiles = 0;
 int	numGames = 0;
 
 char curpath[256];
+char* currentNDSFilePath[256];
 int	sortfile[200];
 
 struct GBA_File fs[200];
@@ -70,6 +72,7 @@ extern int carttype;
 extern bool isSuperCard;
 extern bool is3in1Plus;
 extern bool isOmega;
+extern bool isOmegaDE;
 extern u16 gl_ingame_RTC_open_status;
 extern void SetSDControl(u16 control);
 
@@ -298,6 +301,53 @@ int cnf_inp(int n1, int n2) {
 	free(gback);
 	return(ky);
 }
+
+int cnf_inp2(int n1, int n2) {
+	int	len;
+	int	x1, x2;
+	int	y1, y2;
+	int	xi, yi;
+	u16	*gback;
+	int	gsiz;
+	u32	ky;
+
+	len = strlen(cnfmsg2[n1]);
+	if(len < strlen(cnfmsg2[n2]))len = strlen(cnfmsg2[n2]);
+	if(len < 20)	len = 20;
+
+	x1 = (256 - len * 6) / 2 - 4;
+	y1 = 4*12-6;
+	x2 = x1 + len * 6 + 9;
+	y2 = 8*12+3;
+
+	gsiz = (x2-x1+1) * (y2-y1+1);
+	gback = (u16*)malloc(sizeof(u16*) * gsiz);
+	for( yi=y1; yi<y2+1; yi++ ){
+		for( xi=x1; xi<x2+1; xi++ ){
+			gback[(xi-x1)+(yi-y1)*(x2+1-x1)] = Point_SUB( SubScreen, xi, yi );
+		}
+	}
+
+	DrawBox_SUB( SubScreen, x1, y1, x2, y2, 6, 0);
+	DrawBox_SUB( SubScreen, x1+1, y1+1, x2-1, y2-1, 5, 1);
+	DrawBox_SUB( SubScreen, x1+2, y1+2, x2-2, y2-2, 6, 0);
+
+	ShinoPrint_SUB(SubScreen, x1 + 6, y1 + 6, (u8 *)cnfmsg2[n1], 0, 0, 0);
+	ShinoPrint_SUB(SubScreen, x1 + 6, y1 + 20, (u8 *)cnfmsg2[n2], 0, 0, 0);
+	ShinoPrint_SUB(SubScreen, x1 + (len/2)*6 - 50, y1 + 37, (u8*)cnfmsg2[0], 0, 0, 0);
+
+
+	ky = inp_key();
+
+	for( yi=y1; yi<y2+1; yi++ ){
+		for( xi=x1; xi<x2+1; xi++ ){
+			Pixel_SUB(SubScreen, xi, yi, gback[(xi-x1) + (yi-y1)*(x2+1-x1)] );
+		}
+	}
+	free(gback);
+	return(ky);
+}
+
 
 
 u16	*gbar = NULL;
@@ -874,8 +924,7 @@ int gba_sel() {
 		}
 		if(ky & KEY_SELECT) {
 			if(softReset && (GBAmode == 0)) {
-				if(!(fs[sortfile[sel]].type & S_IFDIR))
-					ret = writeFileToRam(sortfile[sel]);
+				if(!(fs[sortfile[sel]].type & S_IFDIR) && (fs[sortfile[sel]].isNDSFile != 1))ret = writeFileToRam(sortfile[sel]);
 				if(ret != 0) {
 					_gba_sel_dsp(sel, yc, 0);
 					err_cnf(7, 8);
@@ -940,6 +989,15 @@ int gba_sel() {
 				FileListGBA();
 				setcurpath();
 				cmd = -1;
+				break;
+			}
+			if (fs[sortfile[sel]].isNDSFile == 1) {
+				sprintf(tbuf, "%s%s", curpath, fs[sortfile[sel]].filename);
+				tonccpy((char*)currentNDSFilePath, (char*)tbuf, (strlen((const char*)tbuf) + 1));
+				const char *ndsARGArray[] = { (char*)currentNDSFilePath };
+				runNdsFile(tbuf, 1, ndsARGArray);
+				cmd = -1;
+				// sortfile[sel]
 				break;
 			}
 			if(GBAmode == 0) { ret = writeFileToRam(sortfile[sel]); } else { ret = writeFileToNor(sortfile[sel]); }
@@ -1044,6 +1102,8 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 		
 	checkFlashID();
 	
+	if(isOmega && (cnf_inp2(1, 2) & KEY_A))isOmegaDE = true;
+	
 	switch (carttype) {
 		default: 
 			err_cnf(2, 3);
@@ -1056,7 +1116,9 @@ REG_EXMEMCNT = (reg & 0xFFE0) | (1 << 4) | (1 << 2) | 1;
 		case 1: 
 			if (is3in1Plus) {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[3in1Pls]", 0, 0, 0 );
-			} else if (isOmega) {
+			} else if (isOmega && !isOmegaDE) {
+				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ ƒ¶mega ]", 0, 0, 0 );
+			} else if (isOmegaDE) {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)"[ ƒ¶ DE ]", 0, 0, 0 );
 			} else {
 				ShinoPrint_SUB( SubScreen, 23*6, 1*12-2, (u8*)" [ 3in1 ]", 0, 0, 0 );
@@ -1123,7 +1185,7 @@ inp_key();
 	GBA_ini();
 
 	if(!checkSRAM_cnf() && (carttype != 5) && (cnf_inp(9, 10) & KEY_B))turn_off(softReset);
-
+	
 //ShinoPrint_SUB( SubScreen, 6*6, 7*12, "FILE LIST", 1, 0, 0 );
 //	mkdir("/GBA_SAVE", 0777);
 //	mkdir("/GBA_SIGN", 0777);

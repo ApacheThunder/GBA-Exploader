@@ -1,4 +1,5 @@
 #include <nds.h>
+#include <nds/arm9/dldi.h>
 
 #include <fat.h>
 #include <sys/iosupport.h>
@@ -30,25 +31,26 @@
 
 //#include <nds/arm9/console.h> //basic print funcionality
 
-#define MAX_NOR				0x2000000 	// 32MByte 
-#define MAX_NORPLUS			0x4000000 	// 64MByte  (3 in 1 Plus)
-#define MAX_PSRAM			0x1000000 	// 16MByte
-#define SRAM_PAGE_SIZE		0x10000	  	// SRAM Page Size
-#define MAX_SRAM			0x80000		// 4MBit/512KByte total SRAM
+#define MAX_NOR					0x2000000 	// 32MByte 
+#define MAX_NORPLUS				0x4000000 	// 64MByte  (3 in 1 Plus)
+#define MAX_PSRAM				0x1000000 	// 16MByte
+#define SRAM_PAGE_SIZE			0x10000	  	// SRAM Page Size
+#define MAX_SRAM				0x80000		// 4MBit/512KByte total SRAM
 
-#define	USE_SRAM			0x20000	// 128KByte
-#define	USE_SRAM_PG			48		// 0x0A030000-0A031FFF
-#define	USE_SRAM_PG_EZ4		11		// 0x0A008000-0A00FFFF
-#define	USE_SRAM_PG_EWN		10		// 0x0A020000-0A02FFFF
-#define	USE_SRAM_PG_EWN128	 9		// 0x0A010000-0A01FFFF
-#define	USE_SRAM_PG_M3		 6
+#define	USE_SRAM				0x20000	// 128KByte
+#define	USE_SRAM_PG				48		// 0x0A030000-0A031FFF
+#define	USE_SRAM_PG_EZ4			11		// 0x0A008000-0A00FFFF
+#define	USE_SRAM_PG_EWN			10		// 0x0A020000-0A02FFFF
+#define	USE_SRAM_PG_EWN128	 	9		// 0x0A010000-0A01FFFF
+#define	USE_SRAM_PG_M3		 	6
 
-#define	USE_SRAM_NOR		16		// 0x0A010000-0A02FFFF
-#define	USE_SRAM_PSR		50		// 0x0A032000-0A051FFF
-#define	USE_SRAM_PSR_EZ4	16		// 0x0A010000-0A02FFFF
-#define	USE_SRAM_PSR_EWN	 8		// 0x0A000000-0A01FFFF
-#define	USE_SRAM_PSR_M3		 4
-#define	USE_SRAM_PSR_OMEGA	 0
+#define	USE_SRAM_NOR			16		// 0x0A010000-0A02FFFF
+#define	USE_SRAM_PSR			50		// 0x0A032000-0A051FFF
+#define	USE_SRAM_PSR_EZ4		16		// 0x0A010000-0A02FFFF
+#define	USE_SRAM_PSR_EWN	 	8		// 0x0A000000-0A01FFFF
+#define	USE_SRAM_PSR_M3		 	4
+#define	USE_SRAM_PSR_OMEGA	 	40
+#define	USE_SRAM_PSR_OMEGA_DE	0
 
 #define PSRAM_BUF	0x8000		// 32KB
 
@@ -76,10 +78,17 @@ extern int GBAmode;
 
 static u32 savesize;
 
+static const char *validExtensions[3] = {
+	".GBA",
+	".BIN",
+	".NDS"
+};
+
 int	carttype = 0;
 bool isSuperCard = false;
 bool is3in1Plus = false;
 bool isOmega = false;
+bool isOmegaDE = false;
 
 extern int save_sel(int mod, char *name);
 extern u16 gl_ingame_RTC_open_status;
@@ -390,7 +399,7 @@ int check_M3() {
 
 static bool CheckForSuperCard() {
 	if (CheckSuperCardID() == 0x227E0000) {
-		carttype = 6; 
+		carttype = 6;
 		is3in1Plus = false;
 		isSuperCard = true;
 		return true;
@@ -401,11 +410,21 @@ static bool CheckForSuperCard() {
 static bool CheckForOmega() { // EZFlash Omega
 	SetRompage(0x8002);
 	if (CheckOmegaID() == 0x227EEA00) {
+		Set_AUTO_save(0);
 		carttype = 1;
 		is3in1Plus = false;
 		isSuperCard = false;
 		isOmega = true;
-		// Set_AUTO_save(0);
+		isOmegaDE = false;
+		/*char ct[4];
+		ct[0] = (io_dldi_data->ioInterface.ioType & 0xFF);
+		ct[1] = ((io_dldi_data->ioInterface.ioType >> 8) & 0xFF);
+		ct[2] = ((io_dldi_data->ioInterface.ioType >> 16) & 0xFF);
+		ct[3] = ((io_dldi_data->ioInterface.ioType >> 24) & 0xFF);
+		ct[4] = 0;
+		if ((ct[0] != 'E') && (ct[1] != 'Z') && (ct[2] != '5') && (ct[3] != 'N'))isOmegaDE = true;*/
+		/*u16 fpgaVer = (Read_FPGA_ver() & 0xF000);
+		if (fpgaVer != 0 && fpgaVer != 0xE000)isOmegaDE = true;*/
 		return true;
 	}
 	return false;
@@ -481,7 +500,15 @@ void _RamPG() {
 			SetM3Ram(USE_SRAM_PG_M3);
 			return;
 	}
-	if (isOmega) { SetRampage(16); } else { SetRampage(USE_SRAM_PG); }
+	if (isOmega) { 
+		if (isOmegaDE) {
+			SetRampage(16);
+			return;
+		}
+		SetRampage(96);
+	} else { 
+		SetRampage(USE_SRAM_PG); 
+	}
 	return;
 }
 
@@ -503,13 +530,24 @@ void _RamSave(int bnk) {
 
 	if(GBAmode == 0) {
 		if (isOmega) {
+			if (isOmegaDE) {
+				SetRampage(USE_SRAM_PSR_OMEGA_DE + (bnk * 16));
+				return;
+			}
 			SetRampage(USE_SRAM_PSR_OMEGA + (bnk * 16));
 		} else {
 			SetRampage(USE_SRAM_PSR + bnk * 16);
 		}
 	} else {
-		if (isOmega) { SetRampage(USE_SRAM_PSR_OMEGA + (bnk * 16)); return; }
-		SetRampage(USE_SRAM_NOR + bnk * 16);
+		if (isOmega) {
+			if (isOmegaDE) {
+				SetRampage(USE_SRAM_PSR_OMEGA_DE + (bnk * 16));
+				return;
+			}
+			SetRampage(USE_SRAM_PSR_OMEGA + (bnk * 16));
+		} else {
+			SetRampage(USE_SRAM_NOR + bnk * 16);
+		}
 	}
 	return;
 }
@@ -547,11 +585,13 @@ int checkSRAM(char *name) {
 	}
 
 	savesize = ctrl.save_siz[GBAmode];
-	// if (isOmega && savesize > 0x10000)savesize = 0x10000;
-	if((savesize < 0x2000) || (savesize > USE_SRAM)) {
+	
+	if ((savesize < 0x2000) || (savesize > USE_SRAM)) {
 		savesize = 0x10000;
 		ctrl.save_siz[GBAmode] = savesize;
 	}
+	
+	if (isOmega && (savesize > 0x10000))savesize = 0x10000;
 
 	strcpy(name, (char *)ctrl.sav_nam[GBAmode]);
 	ln = strlen(name) - 3;
@@ -664,9 +704,7 @@ void SRAMdump(int cmd) {
 	mx = 8;
 	
 	switch (carttype) {
-		case 1: 
-			if (isOmega)mx = 2;
-			break;
+		case 1: if (isOmega)mx = 2;	break;
 		case 4: mx = 4; break;
 		case 5: mx = 2; break;
 		case 6:
@@ -681,15 +719,17 @@ void SRAMdump(int cmd) {
 		dsp_bar(4, -1);
 		dmp = fopen(name, "wb");
 		for(i = 0; i < mx; i++) {
-			if(carttype == 6 && !isSuperCard) {
+			if((carttype == 6) && !isSuperCard) {
 				SetM3Ram(i);
 			} else if (!isSuperCard) {
 				if((carttype >= 4)) { 
 					SetEWINRam(8 + i); 
-				} else if (isOmega) {
+				} else if (isOmega && !isOmegaDE) {
 					SetRampage(USE_SRAM_PSR_OMEGA + (i * 16));
+				} else if (isOmegaDE) {
+					SetRampage(USE_SRAM_PSR_OMEGA_DE + (i * 16));
 				} else {
-					SetRampage(i * 16); 
+					if(!isSuperCard)SetRampage(i * 16);
 				}
 			}
 			
@@ -727,15 +767,17 @@ void SRAMdump(int cmd) {
 			memset(rwbuf, 0, USE_SRAM / 2);
 			if(dmp != NULL)
 				fread(rwbuf, 1, USE_SRAM / 2, dmp);
-			if(carttype == 6) {
+			if((carttype == 6) && !isSuperCard) {
 				SetM3Ram(i);
 			} else {
 				if((carttype >= 4) && !isSuperCard) {
 					SetEWINRam(8 + i);
-				} else if (isOmega) {
+				} else if (isOmega && !isOmegaDE) {
 					SetRampage(USE_SRAM_PSR_OMEGA + (i * 16));
+				} else if (isOmegaDE) {
+					SetRampage(USE_SRAM_PSR_OMEGA_DE + (i * 16));
 				} else {
-					SetRampage(i * 16);
+					if (!isSuperCard)SetRampage(i * 16);
 				}
 			}
 			
@@ -1225,13 +1267,19 @@ bool nameEndsWith (const string& name, const string& extension) {
 	return false;
 }
 
+bool isValidFile(const string& name) {
+	for (int i = 0; i < 3; i++) {
+		if (nameEndsWith(name, validExtensions[i]))return true;
+	}
+	return false;
+}
+
+
 void FileListGBA() {
 	DIR	*dir;
 	struct stat	st;
 	FILE *gbaFile;
 	int	i;
-	const char* GBAEXT = ".GBA";
-	const char* BINEXT = ".BIN";
 
 	numFiles = 0;
 	numGames = 0;
@@ -1253,10 +1301,12 @@ void FileListGBA() {
 			// if(pent == NULL)break;
 			if(!pent)break;
 			stat(pent->d_name, &st);
-			if ((((st.st_mode & S_IFMT) == S_IFDIR) && (((string)pent->d_name).compare(".") != 0)) || nameEndsWith(pent->d_name, GBAEXT) || nameEndsWith(pent->d_name, BINEXT)) {
+			if ((((st.st_mode & S_IFMT) == S_IFDIR) && (((string)pent->d_name).compare(".") != 0)) || isValidFile(pent->d_name)) {
 				strcpy(fs[numFiles].filename, pent->d_name);
 				// strcpy(fs[numFiles].Alias, pent->d_name);
 				fs[numFiles].type = st.st_mode;
+				fs[numFiles].isNDSFile = 0;
+				if (nameEndsWith(pent->d_name, validExtensions[2]))fs[numFiles].isNDSFile = 1;
 				if ((((string)pent->d_name).compare(".") != 0) && (((string)pent->d_name).compare("..") != 0) && ((st.st_mode & S_IFMT) != S_IFDIR)) {
 					FILE *file = fopen(pent->d_name, "rb");
 					if (file) {
@@ -1282,11 +1332,19 @@ void FileListGBA() {
 					gbaFile = fopen(tbuf, "rb");
 					memset(tbuf, 0, 256);
 					if(gbaFile != NULL) {
-						fread(tbuf, 1, 256, gbaFile);
-						tbuf[0xB0] = 0;
-						strcpy(fs[i].gamecode, tbuf + 0xAC);
-						tbuf[0xAC] = 0;
-						strcpy(fs[i].gametitle, tbuf + 0xA0);
+						if (fs[i].isNDSFile == 1) {
+							fread(tbuf, 1, 256, gbaFile);
+							tbuf[0x10] = 0;
+							strcpy(fs[i].gamecode, tbuf + 0x0C);
+							tbuf[0x0C] = 0;
+							strcpy(fs[i].gametitle, tbuf); // 0x0
+						} else {
+							fread(tbuf, 1, 256, gbaFile);
+							tbuf[0xB0] = 0;
+							strcpy(fs[i].gamecode, tbuf + 0xAC);
+							tbuf[0xAC] = 0;
+							strcpy(fs[i].gametitle, tbuf + 0xA0);
+						}
 						fclose(gbaFile);
 					} else {
 						fs[i].gamecode[0] = 0;

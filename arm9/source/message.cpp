@@ -5,6 +5,7 @@
 
 char *errmsg[16];
 char *cnfmsg[11];
+char *cnfmsg2[3];
 char *barmsg[6];
 char *cmd_m[4];
 char *t_msg[22];
@@ -61,6 +62,20 @@ static const char *cnfmsg_j[11] = {
 	"SRAM.BINに退避します",				// 8
 	"このSlot2拡張パックを GBA ExpLoader用に",	// 9
 	"設定(SRAMは失われます)していいですか？"	// 10
+};
+
+
+
+static const char *cnfmsg2_j[3] = {
+	"(A):はい, (B):いいえ",		// 0
+	"EZFlash Omega を検出しました。",	// 1
+	"これは決定版ですか？"			// 2
+};
+
+static const char *cnfmsg2_e[3] = {
+	"(A):Yes, (B):No",				// 0
+	"Detected EZFlash Omega.",		// 1
+	"Is this Definitive Edition?"	// 2
 };
 
 static const char *cnfmsg_e[11] = {
@@ -191,6 +206,7 @@ void setLangMsg() {
 	if(UserLang != 0) {
 		for(i = 0; i < 16; i++)errmsg[i] = (char*)errmsg_e[i];
 		for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_e[i];
+		for(i = 0; i < 3; i++)cnfmsg2[i] = (char*)cnfmsg2_e[i];
 		for(i = 0; i < 6; i++)barmsg[i] = (char*)barmsg_e[i];
 		for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_e[i];
 		for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_e[i];
@@ -200,6 +216,7 @@ void setLangMsg() {
 
 	for(i = 0; i < 16; i++)errmsg[i] = (char*)errmsg_j[i];
 	for(i = 0; i < 11; i++)cnfmsg[i] = (char*)cnfmsg_j[i];
+	for(i = 0; i < 3; i++)cnfmsg2[i] = (char*)cnfmsg2_j[i];
 	for(i = 0; i < 6; i++)barmsg[i] = (char*)barmsg_j[i];
 	for(i = 0; i < 4; i++)cmd_m[i] = (char*)cmd_m_j[i];
 	for(i = 0; i < 22; i++)t_msg[i] = (char*)t_msg_j[i];

@@ -204,6 +204,40 @@ u32 Omega_SetSaveSize(u8 SaveMode) {
 	}
 }
 
+void SetSPIWrite(u16 control) {
+	*(u16*)0x9fe0000 = 0xd200;
+	*(u16*)0x8000000 = 0x1500;
+	*(u16*)0x8020000 = 0xd200;
+	*(u16*)0x8040000 = 0x1500;
+	*(u16*)0x9680000 = control;
+	*(u16*)0x9fc0000 = 0x1500;
+}
+
+void SetSPIControl(u16 control) {
+	*(u16*)0x9fe0000 = 0xd200;
+	*(u16*)0x8000000 = 0x1500;
+	*(u16*)0x8020000 = 0xd200;
+	*(u16*)0x8040000 = 0x1500;
+	*(u16*)0x9660000 = control;
+	*(u16*)0x9fc0000 = 0x1500;
+}
+
+void SPI_Enable() { SetSPIControl(1); }
+
+void SPI_Disable() { SetSPIControl(0); }
+
+void SPI_Write_Enable() { SetSPIWrite(1); }
+
+void SPI_Write_Disable() { SetSPIWrite(0); }
+
+u16 Read_FPGA_ver() {
+	u16 Read_SPI;
+	SPI_Enable();	
+	Read_SPI = *(vu16*)0x9E00000;
+	SPI_Disable();
+	return Read_SPI;
+}
+
 
 
 void SetRampage(u16 page) {

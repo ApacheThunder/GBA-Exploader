@@ -4,6 +4,7 @@ struct GBA_File {
 	char gamecode[5];
 	u32	type;
 	u32	filesize;
+	int isNDSFile;
 };
 
 

@@ -1,6 +1,7 @@
 
 extern	char	*errmsg[];
 extern	char	*cnfmsg[];
+extern	char	*cnfmsg2[];
 extern	char	*barmsg[];
 extern	char	*cmd_m[];
 extern	char	*t_msg[];

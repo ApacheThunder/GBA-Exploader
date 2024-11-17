@@ -5,6 +5,8 @@ struct GBA_File {
 	u32	type;
 	u32	filesize;
 	int isNDSFile;
+	int isHomebrewNDS;
+	char ndssavfilename[512];
 };
 
 

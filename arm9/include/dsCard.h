@@ -47,7 +47,8 @@ typedef bool BOOL;
 #define PSRAMBase_S98	0x08800000 // EZ Flash Omega PSRAM location while in Kernal mode. (only writable in Kernal mode)
 #define FlashBase_S98	0x09000000
 #define	SRAM_ADDR		0x0A000000
-#define	SRAM_ADDR_OMEGA	0x0E000000
+// #define	SRAM_ADDR_OMEGA	0x0E000000 // SRAM address changes in DS mode. Use 0x0A000000 instead.
+#define	SRAM_ADDR_OMEGA	0x0A000000
 #define RTC_ENABLE		((vu16*)0x080000C8)
 
 #define OMEGA_NOSAVE		0

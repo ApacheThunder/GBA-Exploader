@@ -43,20 +43,19 @@
 #include "skin.h"
 #include "message.h"
 #include "tonccpy.h"
-#include "nds_loader_arm9.h"
 
 extern uint16* MainScreen;
 extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.65"
+#define VERSTRING "v0.66"
 
 int	numFiles = 0;
 int	numGames = 0;
 
 char curpath[256];
-char* currentNDSFilePath[256];
+
 int	sortfile[200];
 
 struct GBA_File fs[200];
@@ -68,6 +67,12 @@ u8	*rwbuf;
 int	GBAmode;
 bool softReset;
 
+u16	*gbar = NULL;
+int	oldper;
+
+// extern u32	_io_dldi;
+extern bool checkSRAM_cnf();
+extern int checkSRAM(char *name);
 extern int carttype;
 extern bool isSuperCard;
 extern bool is3in1Plus;
@@ -75,6 +80,28 @@ extern bool isOmega;
 extern bool isOmegaDE;
 extern u16 gl_ingame_RTC_open_status;
 extern void SetSDControl(u16 control);
+extern bool ret_menu_chk(void);
+extern void setGBAmode(int sel);
+extern void getGBAmode(void);
+extern int writeFileToNor(int sel);
+extern int writeFileToRam(int sel);
+extern void writeSramToFile(char *name);
+extern void writeSramFromFile(char *name);
+extern void SRAMdump(int cmd);
+extern bool checkBackup(void);
+extern bool checkFlashID(void);
+extern u32 SaveType;
+extern u32 SaveSize;
+extern u8 SaveVer[];
+extern int PatchCnt;
+extern u32 PatchType[];
+extern u32 PatchAddr[];
+extern void setcurpath(void);
+extern void getcurpath(void);
+extern void FileListGBA(void);
+extern int save_sel(int mod, char *name);
+extern void setLang(void);
+extern int runNDSFile (char tbuf[], char* iniPath, char* curPathName, char* ndsName, char* savName, bool isHomebrew);
 
 u32 inp_key() {
 	u32	ky;
@@ -95,12 +122,6 @@ u32 inp_key() {
 }
 
 
-extern bool ret_menu_chk(void);
-
-
-extern void setGBAmode(void);
-extern void getGBAmode(void);
-
 void turn_off(bool softReset) {
 	if (softReset) {
 		if (!ret_menu9_Gen())systemShutDown();
@@ -111,12 +132,41 @@ void turn_off(bool softReset) {
 }
 
 
-void gba_frame() {
+void gba_frame(int Sel) {
 	int	ret;
 	int mode = 3; // old mode == 2
 	// int	x = 0, y = 0;
 	// u16	*pDstBuf1;
 	// u16	*pDstBuf2;
+
+	// fs[sel].filename
+	
+	if (Sel != -1) {
+		int nameLength = strlen(fs[Sel].filename);
+		if (nameLength > 4) {
+			if ((	(fs[Sel].filename[(nameLength - 4)] == '.') &&
+					(fs[Sel].filename[(nameLength - 3)] == 'G') &&
+					(fs[Sel].filename[(nameLength - 2)] == 'B') &&
+					(fs[Sel].filename[(nameLength - 1)] == 'A')
+				) || (
+					(fs[Sel].filename[(nameLength - 4)] == '.') &&
+					(fs[Sel].filename[(nameLength - 3)] == 'g') &&
+					(fs[Sel].filename[(nameLength - 2)] == 'b') &&
+					(fs[Sel].filename[(nameLength - 1)] == 'a')
+				)
+			) {
+				fs[Sel].filename[(nameLength - 3)] = 'b';
+				fs[Sel].filename[(nameLength - 2)] = 'm';
+				fs[Sel].filename[(nameLength - 1)] = 'p';
+				// if((fname[ln - 4] != '.') || (fname[ln - 3] != 'S') || (fname[ln - 2] != 'A') || (fname[ln - 1] != 'V'))
+				sprintf(tbuf, "%s/%s", ini.sign_dir, fs[Sel].filename);
+				if (access(tbuf, F_OK) == 0) {
+					ret = LoadSkin(mode, tbuf);
+					if(ret)return;
+				}
+			}
+		}
+	}
 
 	if (access("/gbaframe.bmp", F_OK) == 0) {
 		ret = LoadSkin(mode, "/gbaframe.bmp");
@@ -169,7 +219,7 @@ static void resetToSlot2() {
 	swiSoftReset();
 }
 
-void gbaMode() {
+void gbaMode(int sel) {
 
 	if(strncmp(GBA_HEADER.gamecode, "PASS", 4) == 0)resetToSlot2();
 
@@ -198,7 +248,7 @@ void gbaMode() {
 
 	if(PersonalData->gbaScreen) { lcdMainOnBottom(); } else { lcdMainOnTop(); }
 
-	gba_frame();
+	gba_frame(sel);
 
 	sysSetBusOwners(ARM7_OWNS_CARD, ARM7_OWNS_ROM);
 	fifoSendValue32(FIFO_USER_01, 1);
@@ -349,10 +399,6 @@ int cnf_inp2(int n1, int n2) {
 }
 
 
-
-u16	*gbar = NULL;
-int	oldper;
-
 void dsp_bar(int mod, int per) {
 	int	x1, x2;
 	int	y1, y2;
@@ -423,7 +469,6 @@ void RamClear() {
 	*(vu32*)0x801FFFC = 0x7FFFFFFF;
 	*(vu32*)0x8240000 = 0x00000000;
 }
-
 
 
 void _dsp_clear() {	DrawBox_SUB(SubScreen, 0, 28, 255, 114, 0, 1); }
@@ -506,7 +551,7 @@ int rumble_cmd() {
 		if(ky & KEY_L) {
 			GBAmode = 1;
 			if (isOmega)GBAmode = 0;
-			setGBAmode();
+			setGBAmode(-1);
 			cmd = -1;
 			break;
 		}
@@ -598,9 +643,6 @@ void _gba_dsp2(char *name)
 	ShinoPrint_SUB( SubScreen, 1*6, 5*12, (u8 *)tbuf, 1, 0, 0 );
 }
 ***************/
-
-extern	bool checkSRAM_cnf();
-extern	int checkSRAM(char *name);
 
 
 void _gba_sel_dsp(int no, int yc, int mod) {
@@ -699,13 +741,6 @@ void _gba_sel_dsp(int no, int yc, int mod) {
 	}
 }
 
-extern	int writeFileToNor(int sel);
-extern	int writeFileToRam(int sel);
-extern	void writeSramToFile(char *name);
-extern	void writeSramFromFile(char *name);
-extern	void SRAMdump(int cmd);
-extern	bool checkBackup(void);
-extern	bool checkFlashID(void);
 
 /***************************
 int gba_sel0()
@@ -765,20 +800,6 @@ int gba_sel0()
 	return(cmd);
 }
 ****************/
-
-
-extern	u32	SaveType;
-extern	u32	SaveSize;
-extern	u8	SaveVer[];
-extern	int	PatchCnt;
-extern	u32	PatchType[];
-extern	u32	PatchAddr[];
-
-extern	void setcurpath(void);
-extern	void getcurpath(void);
-extern	void FileListGBA(void);
-
-extern	int save_sel(int mod, char *name);
 
 
 int gba_sel() {
@@ -884,7 +905,7 @@ int gba_sel() {
 			if(GBAmode > 0) {
 				GBAmode--;
 				if ((GBAmode == 1) && isOmega)GBAmode--;
-				setGBAmode();
+				setGBAmode(-1);
 				_gba_sel_dsp(sel, yc, 0);
 //				cmd = -1;
 //				break;
@@ -897,7 +918,7 @@ int gba_sel() {
 			} else if(GBAmode < cn && carttype <= 2) {
 				GBAmode++;
 				if ((GBAmode == 1) && isOmega)GBAmode++;
-				setGBAmode();
+				setGBAmode(-1);
 				if(GBAmode == 2) {
 					_gba_dsp(sel, 0, x, y+yc);
 					cmd = -1;
@@ -919,7 +940,7 @@ int gba_sel() {
 				break;
 			} else if (isOmega && (GBAmode == 0)) {
 				SetRompage(0x8002);
-				gbaMode();
+				gbaMode(-1);
 			}
 		}
 		if(ky & KEY_SELECT) {
@@ -942,7 +963,7 @@ int gba_sel() {
 				// if (!is3in1Plus)SetRompage(0);
 				SetRompage(0);
 				SetRampage(16);
-				gbaMode();
+				gbaMode(-1);
 			} else {
 				if(cnf_inp(7, 8) & KEY_A)SRAMdump(0);
 			}
@@ -992,12 +1013,8 @@ int gba_sel() {
 				break;
 			}
 			if (fs[sortfile[sel]].isNDSFile == 1) {
-				sprintf(tbuf, "%s%s", curpath, fs[sortfile[sel]].filename);
-				tonccpy((char*)currentNDSFilePath, (char*)tbuf, (strlen((const char*)tbuf) + 1));
-				const char *ndsARGArray[] = { (char*)currentNDSFilePath };
-				runNdsFile(tbuf, 1, ndsARGArray);
+				runNDSFile(tbuf, ini.save_dir, curpath, fs[sortfile[sel]].filename, fs[sortfile[sel]].ndssavfilename, (fs[sortfile[sel]].isHomebrewNDS == 1));
 				cmd = -1;
-				// sortfile[sel]
 				break;
 			}
 			if(GBAmode == 0) { ret = writeFileToRam(sortfile[sel]); } else { ret = writeFileToNor(sortfile[sel]); }
@@ -1011,7 +1028,7 @@ int gba_sel() {
 				if(GBAmode == 0) {
 					// if (is3in1Plus)SetRompage(0x100);
 //					SetRompage(384);
-					gbaMode();
+					gbaMode(sortfile[sel]);
 				}
 			}
 			_gba_sel_dsp(sel, yc, 0);
@@ -1036,11 +1053,6 @@ int gba_sel() {
 	}
 	return(cmd);
 }
-
-
-// extern u32	_io_dldi;
-
-extern void setLang(void);
 
 
 void mainloop(void) {

@@ -158,7 +158,8 @@ void Omega_InitFatBuffer(BYTE saveMODE, u32 saveSize, u32 gameSize) {
 	FAT_table_buffer[0x1F8/4] = 0x40; // secort of cluster
 	FAT_table_buffer[0x1FC/4] = ((saveMODE << 24) | saveSize);  // save mode and save file size
 	// FAT_table_buffer[0x204/4] = 0x363100; // Save file sector location
-	FAT_table_buffer[0x204/4] = 0x00C07644;
+	// FAT_table_buffer[0x204/4] = 0x00C07644;
+	FAT_table_buffer[0x204/4] = 0xFFFFFFFF;
 	FAT_table_buffer[0x208/4] = 0xFFFFFFFF;
 	// FAT_table_buffer[0x308/4] = 0x100;	// RTS?
 	// FAT_table_buffer[0x320/4] = 0xFFFFFFFF; // RTS?
@@ -171,7 +172,7 @@ void Omega_InitFatBuffer(BYTE saveMODE, u32 saveSize, u32 gameSize) {
 	}*/
 	SetbufferControl(1);
 	// dmaCopy(FAT_table_buffer, (void*)0x9E00000, 0x400);
-	tonccpy((u16*)0x9E00000, (u32*)FAT_table_buffer, 0x400);
+	tonccpy((void*)0x9E00000, &FAT_table_buffer, 0x400);
 	SetbufferControl(3);
 	SetbufferControl(0);	
 	/*SetbufferControl(0);

@@ -37,12 +37,14 @@
 #define SRAM_PAGE_SIZE			0x10000	  	// SRAM Page Size
 #define MAX_SRAM				0x80000		// 4MBit/512KByte total SRAM
 
-#define	USE_SRAM				0x20000	// 128KByte
+#define USE_SRAM				0x20000	// 128KByte
 #define	USE_SRAM_PG				48		// 0x0A030000-0A031FFF
 #define	USE_SRAM_PG_EZ4			11		// 0x0A008000-0A00FFFF
 #define	USE_SRAM_PG_EWN			10		// 0x0A020000-0A02FFFF
 #define	USE_SRAM_PG_EWN128	 	9		// 0x0A010000-0A01FFFF
 #define	USE_SRAM_PG_M3		 	6
+#define	USE_SRAM_PG_OMEGA	 	96
+#define	USE_SRAM_PG_OMEGA_DE 	16
 
 #define	USE_SRAM_NOR			16		// 0x0A010000-0A02FFFF
 #define	USE_SRAM_PSR			50		// 0x0A032000-0A051FFF
@@ -78,11 +80,7 @@ extern int GBAmode;
 
 static u32 savesize;
 
-static const char *validExtensions[3] = {
-	".GBA",
-	".BIN",
-	".NDS"
-};
+static const char *validExtensions[3] = { ".GBA", ".BIN", ".NDS" };
 
 int	carttype = 0;
 bool isSuperCard = false;
@@ -502,10 +500,10 @@ void _RamPG() {
 	}
 	if (isOmega) { 
 		if (isOmegaDE) {
-			SetRampage(16);
+			SetRampage(USE_SRAM_PG_OMEGA_DE);
 			return;
 		}
-		SetRampage(96);
+		SetRampage(USE_SRAM_PG_OMEGA);
 	} else { 
 		SetRampage(USE_SRAM_PG); 
 	}
@@ -591,7 +589,7 @@ int checkSRAM(char *name) {
 		ctrl.save_siz[GBAmode] = savesize;
 	}
 	
-	if (isOmega && (savesize > 0x10000))savesize = 0x10000;
+	// if (isOmega && (savesize > 0x10000))savesize = 0x10000;
 
 	strcpy(name, (char *)ctrl.sav_nam[GBAmode]);
 	ln = strlen(name) - 3;
@@ -704,7 +702,9 @@ void SRAMdump(int cmd) {
 	mx = 8;
 	
 	switch (carttype) {
-		case 1: if (isOmega)mx = 2;	break;
+		case 1:
+			if (isOmega)mx = 2;
+			break;
 		case 4: mx = 4; break;
 		case 5: mx = 2; break;
 		case 6:
@@ -761,7 +761,7 @@ void SRAMdump(int cmd) {
 		dmp = fopen(name, "rb");
 		// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 		
-		if (isOmega)Omega_Bank_Switching(0);
+		// if (isOmega)Omega_Bank_Switching(0);
 		
 		for(i = 0; i < mx; i++) {
 			memset(rwbuf, 0, USE_SRAM / 2);
@@ -815,7 +815,7 @@ void blankSRAM(char *savename) {
 
 	// if((carttype < 4) && !isSuperCard && !isOmega && !is3in1Plus)OpenNorWrite();
 
-	if (isOmega)Omega_Bank_Switching(0);
+	// if (isOmega)Omega_Bank_Switching(0);
 	
 	_RamSave(0);
 	
@@ -901,7 +901,7 @@ void writeSramFromFile(char *savename) {
 
 //	OpenNorWrite();
 
-	if (isOmega)Omega_Bank_Switching(0);
+	// if (isOmega)Omega_Bank_Switching(0);
 	
 	_RamSave(0);
 
@@ -1306,7 +1306,16 @@ void FileListGBA() {
 				// strcpy(fs[numFiles].Alias, pent->d_name);
 				fs[numFiles].type = st.st_mode;
 				fs[numFiles].isNDSFile = 0;
-				if (nameEndsWith(pent->d_name, validExtensions[2]))fs[numFiles].isNDSFile = 1;
+				fs[numFiles].isHomebrewNDS = 0;
+				if (nameEndsWith(pent->d_name, validExtensions[2])) {
+					fs[numFiles].isNDSFile = 1;
+					strcpy(fs[numFiles].ndssavfilename, pent->d_name);
+					// int filenameLength = (strlen((const char*)fs[numFiles].ndssavfilename) + 1);
+					int filenameLength = strlen((const char*)fs[numFiles].ndssavfilename);
+					fs[numFiles].ndssavfilename[filenameLength - 3] = 'S';
+					fs[numFiles].ndssavfilename[filenameLength - 2] = 'A';
+					fs[numFiles].ndssavfilename[filenameLength - 1] = 'V';
+				}
 				if ((((string)pent->d_name).compare(".") != 0) && (((string)pent->d_name).compare("..") != 0) && ((st.st_mode & S_IFMT) != S_IFDIR)) {
 					FILE *file = fopen(pent->d_name, "rb");
 					if (file) {
@@ -1338,6 +1347,11 @@ void FileListGBA() {
 							strcpy(fs[i].gamecode, tbuf + 0x0C);
 							tbuf[0x0C] = 0;
 							strcpy(fs[i].gametitle, tbuf); // 0x0
+							if (((fs[i].gamecode[0] == '#') && (fs[i].gamecode[1] == '#') &&
+								(fs[i].gamecode[2] == '#') && (fs[i].gamecode[3] == '#')) || (tbuf[0x85] == 0x02)) 
+							{
+								fs[i].isHomebrewNDS = 1;
+							}
 						} else {
 							fread(tbuf, 1, 256, gbaFile);
 							tbuf[0xB0] = 0;

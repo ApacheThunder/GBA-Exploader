@@ -34,7 +34,7 @@
 #endif
 
 /*-----------------------------------------------------------------
-_SC_changeMode (was SC_Unlock)
+_SC_changeMode (was SC_Unlock) (toggling read/write of PSRAM also toggles SRAM bank!)
 Added by MightyMax
 Modified by Chishm
 Modified again by loopy

@@ -35,16 +35,16 @@ void ctrl_get() {
 
 	memset((u8*)&ctrl, 0, sizeof(struct ctrl_tbl));
 
-	if (((carttype != 5) && !isSuperCard && !isOmega) || isOmegaDE) {
+	if (((carttype != 5) && /*!isSuperCard &&*/ !isOmega) || isOmegaDE) {
 		_RamPG();
 		ReadSram(SRAM_ADDR, (u8*)&ctrl, sizeof(struct ctrl_tbl));
 		_RamSave(0);
 		return;
 	}
 	
-	if (isSuperCard) {
+	/*if (isSuperCard) {
 		sprintf(expfile, "%s/SUPERCRD.dat", ini.sign_dir);
-	} else if (isOmega) {
+	} else */if (isOmega) {
 		sprintf(expfile, "%s/OMEGA.dat", ini.sign_dir);
 	} else {
 		sprintf(expfile, "%s/EXP128K.dat", ini.sign_dir);
@@ -60,16 +60,16 @@ void ctrl_set() {
 	FILE *exp;
 	char expfile[64];
 	
-	if (((carttype != 5) && !isSuperCard && !isOmega) || isOmegaDE) {
+	if (((carttype != 5) && /*!isSuperCard && */!isOmega) || isOmegaDE) {
 		_RamPG();
 		WriteSram(SRAM_ADDR, (u8*)&ctrl, sizeof(struct ctrl_tbl));
 		_RamSave(0);
 		return;
 	}
 	
-	if (isSuperCard) {
+	/*if (isSuperCard) {
 		sprintf(expfile, "%s/SUPERCRD.dat", ini.sign_dir);
-	} else if (isOmega) {
+	} else */if (isOmega) {
 		sprintf(expfile, "%s/OMEGA.dat", ini.sign_dir);
 	} else {
 		sprintf(expfile, "%s/EXP128K.dat", ini.sign_dir);

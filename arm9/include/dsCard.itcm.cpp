@@ -265,6 +265,7 @@ u32 CheckSuperCardID() {
 	// _SC_changeMode16(0x1510);
 	*(vu16*)(FlashBase) = 0x4D54;
 	if (*(vu16*)(FlashBase) == 0x4D54) {
+		_SC_changeMode(SC_MODE_RAM_RO);
 		ID = 0x227E2202;
 		return 0x227E0000;
 	}

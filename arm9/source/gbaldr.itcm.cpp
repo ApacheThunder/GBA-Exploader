@@ -28,6 +28,7 @@
 #include "dsCard.h"
 #include "sc_patches.h"
 #include "sc_sram.h"
+#include "io_sc_common.h"
 
 //#include <nds/arm9/console.h> //basic print funcionality
 
@@ -483,7 +484,7 @@ int checkFlashID() {
 
 
 void _RamPG() {
-	if (isSuperCard)return;
+	// if (isSuperCard)return;
 	switch (carttype) {
 		case 3:
 			SetRampage(USE_SRAM_PG_EZ4);
@@ -495,7 +496,11 @@ void _RamPG() {
 			SetEWINRam(USE_SRAM_PG_EWN128);
 			return;
 		case 6:
-			SetM3Ram(USE_SRAM_PG_M3);
+			if (isSuperCard) {
+				_SC_changeMode(SC_MODE_RAM);
+			} else {
+				SetM3Ram(USE_SRAM_PG_M3);
+			}
 			return;
 	}
 	if (isOmega) { 
@@ -505,19 +510,27 @@ void _RamPG() {
 		}
 		SetRampage(USE_SRAM_PG_OMEGA);
 	} else { 
-		SetRampage(USE_SRAM_PG); 
+		SetRampage(USE_SRAM_PG);
 	}
 	return;
 }
 
 void _RamSave(int bnk) {
-	if (isSuperCard)return;
+	if (isSuperCard && (bnk > 1))return;
 	switch (carttype) {
 		case 3:
 			SetRampage(USE_SRAM_PSR_EZ4 + bnk * 16);
 			return;
 		case 6:
-			SetM3Ram(USE_SRAM_PSR_M3 + bnk);
+			if (isSuperCard) {
+				if (bnk == 0) {
+					_SC_changeMode(SC_MODE_RAM_RO);
+				} else {
+					_SC_changeMode(SC_MODE_RAM);
+				}
+			} else {
+				SetM3Ram(USE_SRAM_PSR_M3 + bnk);
+			}
 			return;
 	}
 	
@@ -590,6 +603,7 @@ int checkSRAM(char *name) {
 	}
 	
 	// if (isOmega && (savesize > 0x10000))savesize = 0x10000;
+	if (isSuperCard && (savesize > 0x10000))savesize = 0x10000;
 
 	strcpy(name, (char *)ctrl.sav_nam[GBAmode]);
 	ln = strlen(name) - 3;
@@ -708,8 +722,11 @@ void SRAMdump(int cmd) {
 		case 4: mx = 4; break;
 		case 5: mx = 2; break;
 		case 6:
-			mx = 16;
-			if (isSuperCard)mx = 1;
+			if (isSuperCard) { 
+				mx = 2;
+			} else {
+				mx = 16;
+			}
 			break;
 	}	
 	
@@ -719,8 +736,16 @@ void SRAMdump(int cmd) {
 		dsp_bar(4, -1);
 		dmp = fopen(name, "wb");
 		for(i = 0; i < mx; i++) {
-			if((carttype == 6) && !isSuperCard) {
-				SetM3Ram(i);
+			if (carttype == 6) {
+				if (isSuperCard) {
+					if (i == 0) {
+						_SC_changeMode(SC_MODE_RAM_RO);
+					} else {
+						_SC_changeMode(SC_MODE_RAM);
+					}
+				} else {
+					SetM3Ram(i);
+				}
 			} else if (!isSuperCard) {
 				if((carttype >= 4)) { 
 					SetEWINRam(8 + i); 
@@ -767,8 +792,16 @@ void SRAMdump(int cmd) {
 			memset(rwbuf, 0, USE_SRAM / 2);
 			if(dmp != NULL)
 				fread(rwbuf, 1, USE_SRAM / 2, dmp);
-			if((carttype == 6) && !isSuperCard) {
-				SetM3Ram(i);
+			if (carttype == 6) {
+				if (isSuperCard) {
+					if (i == 0) {
+						_SC_changeMode(SC_MODE_RAM_RO);
+					} else {
+						_SC_changeMode(SC_MODE_RAM);
+					}
+				} else {
+					SetM3Ram(i);
+				}
 			} else {
 				if((carttype >= 4) && !isSuperCard) {
 					SetEWINRam(8 + i);
@@ -1081,6 +1114,8 @@ int writeFileToRam(int sel) {
 		Set_RTC_status(1);
 		SetPSRampage(0);
 		// Omega_InitFatBuffer(OMEGA_UNKNOWN, Omega_SetSaveSize(OMEGA_UNKNOWN), fs[sel].filesize);
+	} else if (isSuperCard) {
+		_SC_changeMode(SC_MODE_RAM);
 	}
 	
 //	savesize = gba_check(gbaFile, fs[sel].filesize, rwbuf, 0x100000);

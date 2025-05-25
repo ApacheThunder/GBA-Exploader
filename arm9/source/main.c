@@ -49,7 +49,7 @@ extern uint16* SubScreen;
 
 #define BG_256_COLOR (BIT(7))
 
-#define VERSTRING "v0.66"
+#define VERSTRING "v0.67"
 
 int	numFiles = 0;
 int	numGames = 0;

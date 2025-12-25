@@ -23,6 +23,7 @@ If matching NDS file is not found it will then look for the following based ioTy
 	* X9SD -> loader.nds (Kernel for X9 SD)
 	* TTIO -> TTMENU.DAT" (Kernel for DSTT)
 	* DEMO -> R4.dat (Kernel for DSTTi timebombed clones like R4i SDHC Gold Pro etc)
+	* PICO -> _picoboot.nds (Pico-Launcher for DSPico)
 	
 If none of the above found it will then try boot.nds. If that isn't present then Rumble menu will be unavailable.
 

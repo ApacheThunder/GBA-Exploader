@@ -46,7 +46,7 @@ checkarm9:
 $(TARGET).nds : arm7/$(TARGET).elf arm9/$(TARGET).elf
 	@ndstool	-c $@ -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf \
 				-b $(CURDIR)/logo32.bmp "GBA ExpLoader;Version $(VERSTRING);By Rudolph" \
-				-g #### 01 "GBAEXPLOADER" -z 80040000 -u 00030004 -a 00000138 -p 0001 \
+				-h 0x200
 
 data:
 	@mkdir -p arm9/data

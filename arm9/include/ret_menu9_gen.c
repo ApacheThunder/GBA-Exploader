@@ -1,7 +1,7 @@
 /***********************************************************
 	Arm9 Soft rest for General purpose
 
-		by Rudolph (çcíÈ)
+		by Rudolph (ÔøΩcÔøΩÔøΩ)
 ***************************************************************/
 
 #include <nds.h>
@@ -41,6 +41,7 @@ bool ret_menu_chk() {
 		case 0x44533958: menu_nam = "/loader.nds"; break; // X9 SD
 		case 0x4F495454: menu_nam = "/TTMENU.DAT"; break; // DSTT
 		case 0x4F4D4544: menu_nam = "/R4.DAT"; break; // Timebombed DSTTi clones like R4 SDHC Gold Pro
+		case 0x4F434950: menu_nam = "/_picoboot.nds"; break; // DSPico
 	}
 	
 	if((menu_nam != NULL) && (access(menu_nam, F_OK) == 0)) {
